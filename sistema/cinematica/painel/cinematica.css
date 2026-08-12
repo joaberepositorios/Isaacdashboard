@@ -323,7 +323,14 @@ details#detalhes[open] .seta { transform: rotate(90deg); }
 .pares .par.bate b { color: var(--ciano); }
 .pares .par.nao-bate b, .pares .par.nao-bate i { color: var(--ambar); }
 
-.traco { display: block; margin-top: 3px; touch-action: none; cursor: crosshair; }
+/* colunas de largura igual dividindo o cartao, como o .malha do site faz com
+   1fr: os tracos comecam e terminam nas bordas, alinhados entre si */
+#pe-pos .par, #ik-conf .par { flex: 1 1 0; min-width: 0; }
+
+.traco {
+  display: block; width: 100%; margin-top: 5px;
+  touch-action: none; cursor: crosshair;
+}
 .t-zero { stroke: var(--axis); stroke-width: 1; }
 .t-linha {
   fill: none; stroke: var(--azul-medio); stroke-width: 2;

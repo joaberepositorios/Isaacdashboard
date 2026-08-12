@@ -263,17 +263,21 @@ function mapaPernas(host, ativa, aoEscolher) {
   host.appendChild(s);
 }
 
-const TRACO_L = 116;
-const TRACO_A = 34;
-const TRACO_PAD = 5;
+const TRACO_L = 180;
+const TRACO_A = 48;
+const TRACO_PAD = 6;
 const TRACO_JANELA = 160;
 
 class Traco {
 
   constructor(host) {
+    this.L = TRACO_L;
+    this.lo = 0;
+    this.hi = 1;
+    this.alerta = false;
     this.svg = svgEl('svg', {
       class: 'traco', viewBox: `0 0 ${TRACO_L} ${TRACO_A}`,
-      width: TRACO_L, height: TRACO_A, 'aria-hidden': 'true',
+      height: TRACO_A, 'aria-hidden': 'true',
     });
     this.zero = svgEl('line', { class: 't-zero' });
     this.linha = svgEl('polyline', { class: 't-linha' });
@@ -283,11 +287,27 @@ class Traco {
     this.svg.append(this.zero, this.linha, this.cruz, this.anel, this.ponto);
     host.appendChild(this.svg);
     this.serie = [];
+
+    // 1 unidade do viewBox = 1 pixel: sem isso o SVG estica e deforma
+    // a espessura da linha e os pontos viram elipses
+    if (typeof ResizeObserver !== 'undefined') {
+      this.observador = new ResizeObserver(() => this.medir());
+      this.observador.observe(this.svg);
+    }
+    this.medir();
+  }
+
+  medir() {
+    const l = Math.round(this.svg.getBoundingClientRect().width);
+    if (!l || l === this.L) return;
+    this.L = l;
+    this.svg.setAttribute('viewBox', `0 0 ${l} ${TRACO_A}`);
+    if (this.serie.length) this.definir(this.serie, this.lo, this.hi, this.alerta);
   }
 
   emX(i, n) {
-    const largura = TRACO_L - 2 * TRACO_PAD;
-    return TRACO_L - TRACO_PAD - (n - 1 - i) * (largura / (TRACO_JANELA - 1));
+    const largura = this.L - 2 * TRACO_PAD;
+    return this.L - TRACO_PAD - (n - 1 - i) * (largura / (TRACO_JANELA - 1));
   }
 
   emY(v) {
@@ -299,7 +319,8 @@ class Traco {
     this.serie = serie;
     this.lo = lo;
     this.hi = hi;
-    this.svg.classList.toggle('alerta', !!alerta);
+    this.alerta = !!alerta;
+    this.svg.classList.toggle('alerta', this.alerta);
 
     const n = serie.length;
     const visiveis = Math.min(n, TRACO_JANELA);
@@ -308,7 +329,7 @@ class Traco {
     if (lo < 0 && hi > 0) {
       const y = this.emY(0).toFixed(2);
       this.zero.setAttribute('x1', TRACO_PAD);
-      this.zero.setAttribute('x2', TRACO_L - TRACO_PAD);
+      this.zero.setAttribute('x2', this.L - TRACO_PAD);
       this.zero.setAttribute('y1', y);
       this.zero.setAttribute('y2', y);
       this.zero.style.display = '';
@@ -353,7 +374,7 @@ class Traco {
     const cx = this.svg.getBoundingClientRect();
     const n = Math.min(this.serie.length, TRACO_JANELA);
     if (!n || cx.width === 0) return -1;
-    const px = (clienteX - cx.left) * (TRACO_L / cx.width);
+    const px = clienteX - cx.left;
     let melhor = -1, dist = Infinity;
     for (let i = 0; i < n; i++) {
       const d = Math.abs(this.emX(i, n) - px);
