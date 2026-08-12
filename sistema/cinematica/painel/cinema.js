@@ -155,6 +155,29 @@ function solucoesIk(px, py, pz, lado, limites) {
   return achadas;
 }
 
+const MARCHA = {
+  ALTURA: 0.30,
+  PASSO: 0.06,
+  LEVANTA: 0.05,
+  PERIODO: 1.6,
+  FASE: { FL: 0, RR: 0, FR: 0.5, RL: 0.5 },
+};
+
+function peDaMarcha(fase, sentido, lado) {
+  const f = ((fase % 1) + 1) % 1;
+  let x, z;
+  if (f < 0.5) {
+    const s = f / 0.5;
+    x = MARCHA.PASSO * (1 - 2 * s);
+    z = -MARCHA.ALTURA;
+  } else {
+    const s = (f - 0.5) / 0.5;
+    x = MARCHA.PASSO * (2 * s - 1);
+    z = -MARCHA.ALTURA + MARCHA.LEVANTA * Math.sin(Math.PI * s);
+  }
+  return [sentido * x, lado * GEO.L_ABD, z];
+}
+
 function _sorteio(semente) {
   let a = semente >>> 0;
   return function () {

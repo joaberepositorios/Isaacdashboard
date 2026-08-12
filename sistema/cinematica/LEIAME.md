@@ -13,13 +13,50 @@ palavra, sem títulos nem parágrafos de explicação.
 |---|---|
 | **Membro** | escolhe **uma ou mais** pernas no mapa do robô visto de cima |
 | **Movimentação** | gira as juntas arrastando os mostradores — o trecho claro do anel é a faixa que a junta alcança de verdade, lida do `go2.xml` (**cinemática direta**) |
-| **Poses** | Normal, Agachar, Esticar, Inverter |
+| **Poses** | Normal, Agachar, Esticar, Inverter, Frente, Tras |
 | **A perna por fora** | as duas vistas 2D, de lado e de frente |
 
 **Inverter** leva cada perna selecionada à *outra* configuração que põe o pé
 dela exatamente no mesmo lugar. Ele fica desligado quando falta alternativa para
 alguma das selecionadas: com uma perna, 18,4% das poses têm duas soluções; com
 as quatro juntas, só 7,8%.
+
+## Ciclo de marcha
+
+**Frente** e **Tras** põem as pernas selecionadas num ciclo de marcha contínuo.
+Clicar de novo no mesmo botão para; mexer num mostrador, escolher uma pose ou
+apertar o outro sentido também param.
+
+O robô fica preso no suporte, então ele **não sai do lugar** — o pé é que
+desenha o ciclo no ar. Para uma bancada de cinemática isso é a vantagem, não a
+limitação: dá para ver a trajetória sem a física entrar no meio.
+
+Como o ciclo é construído, em coordenadas da própria perna:
+
+- **apoio** (metade do período): o pé fica na altura de trabalho, −30 cm, e
+  desliza 12 cm de frente para trás. É esse deslize que empurraria o corpo para
+  a frente se houvesse chão;
+- **balanço** (a outra metade): o pé sobe 5 cm num arco de seno e volta à
+  frente para recomeçar.
+
+*Tras* espelha o avanço; a altura e o levantamento não mudam. Medido no
+navegador: para a frente o pé apoiado desliza −20 cm em 3 s, para trás +20 cm.
+
+O andar é **trote**, o mesmo do Go2 real: as diagonais andam juntas
+(`FL`+`RR` contra `FR`+`RL`), com meio período de defasagem. Medida a diferença
+de altura entre as diagonais durante a marcha: exatamente 0.
+
+Os ângulos saem da **cinemática inversa**, não de curvas prontas — é o mesmo
+código da gaveta da matemática. Antes de fechar, varri o ciclo inteiro nos dois
+sentidos e nas quatro pernas, 16.008 pontos: nenhum alvo recusado, nenhuma
+junta grampeada no limite, erro máximo de 1,3×10⁻¹³ mm entre o alvo e o pé
+alcançado. A junta mais apertada é o joelho, que usa de −108° a −88° e tem 40°
+de folga até o limite mecânico.
+
+Com uma perna só selecionada, ela cumpre a própria fase e as outras ficam
+paradas — serve para ver o ciclo isolado. A marcha continua enquanto você muda
+a seleção, então dá para começar com uma perna e trazer as outras clicando no
+tronco.
 
 ## Selecionar uma perna, duas, três ou todas
 

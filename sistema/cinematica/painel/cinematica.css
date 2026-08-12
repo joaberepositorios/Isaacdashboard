@@ -50,6 +50,13 @@ button.cmd.forte {
   background: var(--ciano); border-color: var(--ciano);
   color: var(--sobre-ciano); font-weight: 660;
 }
+button.cmd[aria-pressed="true"] {
+  background: var(--ciano); border-color: var(--ciano);
+  color: var(--sobre-ciano); font-weight: 660;
+}
+button.cmd[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--ciano-claro); border-color: var(--ciano-claro);
+}
 button.cmd.forte:hover:not(:disabled) {
   background: var(--ciano-claro); border-color: var(--ciano-claro);
   color: var(--sobre-ciano);

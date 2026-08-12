@@ -9,6 +9,7 @@ const estado = {
   selecao: ['FL'],
   angulos: Object.fromEntries(PERNAS.map(p => [p, HOME.slice()])),
   anim: null,
+  marcha: null,
 };
 
 function limitesSelecao() {
@@ -45,6 +46,8 @@ function iniciar() {
   $('#pose-outra').addEventListener('click', () => {
     if (alternativas) irPara(alternativas);
   });
+  $('#marcha-frente').addEventListener('click', () => marchar(1));
+  $('#marcha-tras').addEventListener('click', () => marchar(-1));
   $('#recentrar').addEventListener('click', () => bancada.reiniciarCamera());
   $('#ver-cima').addEventListener('click', () => bancada.verDeCima());
   $('#ver-lado').addEventListener('click', () => bancada.verDeLado());
@@ -99,7 +102,38 @@ function trocarPerna(alvo, aditivo) {
   refrescar();
 }
 
+function marchar(sentido) {
+  const jaIa = estado.marcha && estado.marcha.sentido === sentido;
+  pararMarcha();
+  if (jaIa) return;
+  estado.anim = null;
+  estado.marcha = { sentido, t0: performance.now() / 1000 };
+  $(sentido > 0 ? '#marcha-frente' : '#marcha-tras').setAttribute('aria-pressed', 'true');
+  requestAnimationFrame(passoMarcha);
+}
+
+function pararMarcha() {
+  estado.marcha = null;
+  $('#marcha-frente').setAttribute('aria-pressed', 'false');
+  $('#marcha-tras').setAttribute('aria-pressed', 'false');
+}
+
+function passoMarcha() {
+  const m = estado.marcha;
+  if (!m) return;
+  const t = performance.now() / 1000 - m.t0;
+  for (const p of estado.selecao) {
+    const fase = t / MARCHA.PERIODO + MARCHA.FASE[p];
+    const alvo = peDaMarcha(fase, m.sentido, LADO[p]);
+    const s = ikPerna(alvo[0], alvo[1], alvo[2], LADO[p], RAMOS[0], LIMITES[p]);
+    if (s.ok) estado.angulos[p] = s.qLim;
+  }
+  refrescar();
+  if (estado.marcha) requestAnimationFrame(passoMarcha);
+}
+
 function girarJunta(i, valor) {
+  pararMarcha();
   estado.anim = null;
   for (const p of estado.selecao) {
     const q = estado.angulos[p].slice();
@@ -111,6 +145,7 @@ function girarJunta(i, valor) {
 
 // qFim: um array (o mesmo alvo para todas) ou um objeto {perna: array}
 function irPara(qFim) {
+  pararMarcha();
   const pernas = estado.selecao.slice();
   const alvo = p => (Array.isArray(qFim) ? qFim : qFim[p]);
   estado.anim = {
