@@ -13,12 +13,30 @@ palavra, sem títulos nem parágrafos de explicação.
 |---|---|
 | **Membro** | escolhe a perna clicando no mapa do robô visto de cima |
 | **Movimentação** | gira as juntas arrastando os mostradores — o trecho claro do anel é a faixa que a junta alcança de verdade, lida do `go2.xml` (**cinemática direta**) |
-| **Poses** | Normal, Agachar, Esticar |
+| **Poses** | Normal, Agachar, Esticar, Inverter |
 | **A perna por fora** | as duas vistas 2D, de lado e de frente |
+
+**Inverter** leva a perna à *outra* configuração que põe o pé exatamente no
+mesmo lugar. Ele fica desligado quando não existe outra: em 24.000 poses
+medidas, 81,6% têm solução única e 18,4% têm duas.
 
 A **cinemática inversa** continua em `painel/cinema.js` e aparece na gaveta da
 matemática, que aplica a IK de volta na posição do pé para conferir a direta. A
 entrada por coordenadas foi retirada da tela a pedido.
+
+## As quatro soluções, e por que só duas aparecem
+
+Esta perna de 3 juntas tem **quatro** soluções analíticas de IK: o joelho dobra
+para dois lados e a abdução resolve o triângulo de dois jeitos. Todas as quatro
+põem o pé no mesmo ponto, com erro de 3×10⁻¹³ mm.
+
+Mas os **limites mecânicos do `go2.xml` matam metade delas**: o joelho do Go2 só
+existe entre −156° e −48°, sempre negativo, e o ramo "joelho para cima" produz
+q3 entre 0° e 180°. Em 24.000 poses medidas ele coube nos limites **zero vez**.
+O Go2 não inverte o joelho — quem inverte é a abdução.
+
+Isso é a diferença entre *solução matemática* e *pose que o robô alcança*, e é a
+razão de a IK receber os limites como argumento em vez de ignorá-los.
 
 Dentro da cena, três ferramentas de câmera: recentrar, ver de cima, ver de
 lado. Acima dela, quatro medidores de telemetria dizem onde o pé está; no pé da
@@ -122,10 +140,26 @@ painel/cinematica.css  a paleta e o específico daqui
 
 Com o servidor no ar, a página faz duas afirmações verificáveis:
 
-- **autoteste**, na gaveta — 2000 poses aleatórias, erro máximo em milímetros;
+- **autoteste**, na gaveta. Ele tem duas metades, e a segunda é a que importa:
+
+  1. Sorteia poses na faixa mecânica inteira das quatro pernas, calcula o pé
+     pela direta e exige que a inversa **aceite** o alvo e volte nele — nos
+     quatro ramos. Pega inversa estreita demais.
+  2. Sorteia alvos **numa caixa em volta do quadril**, a maioria fora do
+     alcance, e exige que a inversa ou **recuse** o alvo, ou o alcance de
+     verdade. Pega inversa que finge ter resolvido.
+
+  A metade 2 é a que o autoteste antigo não tinha: ele só alimentava alvos que a
+  direta acabara de produzir, então era incapaz, por construção, de flagrar uma
+  inversa que grampeia o alvo e devolve resposta errada calada.
+
 - **"Conferência: IK aplicada de volta"**, na mesma gaveta — aplica a inversa na
-  posição que a direta acabou de calcular e mostra o erro em graus. Enquanto ele
-  ficar em `0.0000°`, direta e inversa concordam.
+  posição que a direta acabou de calcular e mostra o erro em graus. **Zero não é
+  o único resultado certo:** se a perna estiver na segunda solução (depois de
+  *Inverter*), a inversa devolve a primeira e o erro aparece em âmbar, com o
+  valor da diferença. Isso é a IK escolhendo entre soluções, não desacordo entre
+  direta e inversa. Cada `q'` também fica âmbar se tiver sido grampeado no
+  limite da junta.
 
 Com o espelho ligado, dá para conferir a mesma coisa contra o modelo real: a
 ponta da cadeia no MuJoCo cai exatamente onde o painel calculou (erro de 10⁻¹⁶ m,
@@ -140,3 +174,13 @@ no chão.
 junta. O joelho do Go2 não estica além de −48°, então o pé nunca chega aos
 0,426 m que a soma coxa + canela sugere — o medidor de esticamento marca isso
 antes de 100%, e o mostrador do joelho fica âmbar quando trava.
+
+## Licença e material de terceiros
+
+O código desta pasta está sob **MIT** — veja `LICENSE` na raiz do repositório.
+
+Isso **não** cobre o modelo do Unitree Go2. As malhas e o `go2.xml` que o
+`espelho_mujoco.py` carrega vêm do `mujoco_menagerie`, têm licença própria e não
+são redistribuídos aqui: o espelho os procura na máquina ou os baixa uma vez.
+As medidas e os limites de junta usados no painel são **fatos numéricos lidos
+desse modelo**, não cópia do arquivo.

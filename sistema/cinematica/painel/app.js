@@ -13,6 +13,7 @@ const estado = {
 const $ = s => document.querySelector(s);
 
 let bancada;
+let alternativas = [];
 const mostradores = [];
 
 const POSES = {
@@ -33,6 +34,9 @@ function iniciar() {
   $('#pose-neutra').addEventListener('click', () => irPara(POSES.neutra));
   $('#pose-agachar').addEventListener('click', () => irPara(POSES.agachar));
   $('#pose-esticar').addEventListener('click', () => irPara(POSES.esticar));
+  $('#pose-outra').addEventListener('click', () => {
+    if (alternativas.length) irPara(alternativas[0].q);
+  });
   $('#recentrar').addEventListener('click', () => bancada.reiniciarCamera());
   $('#ver-cima').addEventListener('click', () => bancada.verDeCima());
   $('#ver-lado').addEventListener('click', () => bancada.verDeLado());
@@ -100,6 +104,10 @@ function refrescar() {
   $('#vista-lat').innerHTML = vista2D(pontos, 0, 2);
   $('#vista-fro').innerHTML = vista2D(pontos, 1, 2);
 
+  alternativas = solucoesIk(pe[0], pe[1], pe[2], lado, LIMITES[perna])
+    .filter(s => s.q.some((v, i) => Math.abs(v - q[i]) > 1e-4));
+  $('#pose-outra').disabled = alternativas.length === 0;
+
   if ($('#detalhes').open) matematica(T, pe, q, lado);
 
   publicarPose();
@@ -140,14 +148,27 @@ function matematica(T, pe, q, lado) {
   $('#pe-pos').innerHTML = ['x', 'y', 'z'].map((e, i) =>
     `<span class="par"><i>${e}</i><b>${fmtM(pe[i])}</b></span>`).join('');
 
-  const qb = ikPerna(pe[0], pe[1], pe[2], lado);
-  const erro = Math.max(...qb.map((v, i) => Math.abs(v - q[i]))) * GRAU;
+  const s = ikPerna(pe[0], pe[1], pe[2], lado, RAMOS[0], LIMITES[estado.ativa]);
 
+  if (!s.ok) {
+    $('#ik-conf').innerHTML =
+      [0, 1, 2].map(i => `<span class="par nao-bate"><i>q${i + 1}'</i><b>--</b></span>`)
+        .join('') +
+      '<span class="par nao-bate"><i>erro</i><b>--</b></span>';
+    return;
+  }
+
+  const erro = Math.max(...s.qLim.map((v, i) => difAngulo(v, q[i]))) * GRAU;
   const classe = erro < 1e-3 ? 'bate' : 'nao-bate';
   $('#ik-conf').innerHTML =
-    qb.map((v, i) => `<span class="par"><i>q${i + 1}'</i>` +
+    s.qLim.map((v, i) => `<span class="par ${s.preso[i] ? 'nao-bate' : ''}"><i>q${i + 1}'</i>` +
       `<b>${fmtGrau(v * GRAU)}</b></span>`).join('') +
     `<span class="par ${classe}"><i>erro</i><b>${erro.toFixed(4)}°</b></span>`;
+}
+
+function difAngulo(a, b) {
+  const d = Math.abs(a - b) % (2 * Math.PI);
+  return Math.min(d, 2 * Math.PI - d);
 }
 
 const fmtGrau = v => (v >= 0 ? '+' : '') + v.toFixed(2) + '°';
