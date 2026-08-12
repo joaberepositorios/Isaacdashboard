@@ -1,0 +1,266 @@
+/* Tema escuro, vermelho velvet. Sem fundo nos blocos: tudo e lido direto
+   sobre a pagina, e a estrutura vem de espaco, regua e filete -- nao de
+   caixas empilhadas. Nenhum gradiente.
+
+   O numero ao lado de cada token e o contraste medido contra a pagina
+   #0d0709. Vermelho profundo tem pouca luz: por isso existe um tom claro
+   separado para quando a cor precisa virar LETRA. */
+
+:root {
+  color-scheme: dark;
+
+  --fundo:   #0d0709;
+  --surface: #0d0709;   /* igual a pagina: os aneis das marcas somem no fundo */
+  --plane:   #17100f;   /* unico preenchimento que sobrou: dica e reservas */
+
+  --ink:   #f4ecec;   /* 17,17 */
+  --ink2:  #cbbcbe;   /* 10,91 */
+  --muted: #9a888c;   /*  5,97 -- passa o minimo de 4,5 para texto */
+
+  --grid:  #1e1417;
+  --axis:  #302125;
+  --hair:  rgba(244, 236, 236, 0.09);
+  --trilho: #2a1218;   /* fundo de barra e de medidor */
+  --neutro: #6d5a60;   /* coluna sem enfase: 3,08 */
+
+  /* VELVET */
+  --velvet:       #cc1233;   /* 3,52 -- marca e preenchimento */
+  --velvet-fundo: #8e1229;   /* 2,16 -- so onde nao carrega dado */
+  --rosa:         #f2a6ae;   /* 10,31 -- o polo claro */
+  --rosa-txt:     #e8798a;   /*  7,16 -- vermelho quando vira letra */
+  --sobre-velvet: #fff5f6;   /*  5,31 sobre o velvet */
+
+  /* os cinco indicadores compartilham o velvet: cartoes separados e
+     rotulados nao precisam de cor propria */
+  --a1: var(--velvet); --a2: var(--velvet); --a3: var(--velvet);
+  --a4: var(--velvet); --a5: var(--velvet);
+
+  /* AQUA e LARANJA -- os dois estados do contato com o chao.
+     Par medido: separacao 22,9 na visao normal e 12,5 sob daltonismo, os
+     dois acima dos pisos. O aqua e claro (7,54 de contraste), e e essa
+     luminosidade que salva o par: verde contra vermelho no mesmo tom mede
+     4,1 e reprovaria. */
+  --aqua:    #3fb0a0;   /* 7,54  pata no chao / termo que soma */
+  --laranja: #e8843f;   /* 7,42  pata no ar */
+
+  /* somar x punir: aqua contra velvet mede 34,4 na visao normal e 16,7
+     sob daltonismo -- melhor que o par anterior e semanticamente obvio */
+  --pos: var(--aqua);
+  --neg: var(--velvet);
+
+  /* faixas do medidor: degraus de vinho, severidade por luminosidade */
+  --zona1: #241419;
+  --zona2: #391a24;
+  --zona3: #542330;
+}
+
+:root[data-paleta="acentos"] {
+  --a1: #e2604a; --a2: #e8a33f; --a3: #3fb0a0; --a4: #8b86e0; --a5: #d96aa8;
+  --pos: #e8a33f; --neg: #e2604a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0; background: var(--fundo); color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px; line-height: 1.45;
+}
+
+/* ---------------------------------------------------------------- barra */
+
+header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 24px; border-bottom: 1px solid var(--hair);
+  position: sticky; top: 0; z-index: 20; background: var(--fundo);
+}
+.marca {
+  font-weight: 650; letter-spacing: -.015em; font-size: 14.5px;
+  padding-left: 11px; position: relative;
+}
+.marca::before {
+  content: ''; position: absolute; left: 0; top: 2px; bottom: 2px;
+  width: 3px; border-radius: 2px; background: var(--velvet);
+}
+.espaco { flex: 1; }
+
+.pilula {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 620; color: var(--ink2);
+  border: 1px solid var(--hair); border-radius: 999px; padding: 4px 11px;
+}
+.ponto { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+/* recebendo = aqua, esperando = laranja, encerrado = velvet apagado.
+   O ponto nunca aparece sozinho: vem sempre colado no texto que o nomeia. */
+.ponto.vivo { background: var(--aqua); }
+.ponto.pausa { background: var(--laranja); }
+.ponto.morto { background: var(--velvet-fundo); }
+
+nav {
+  display: flex; gap: 4px; padding: 0 24px;
+  border-bottom: 1px solid var(--hair);
+  position: sticky; top: 52px; z-index: 19; background: var(--fundo);
+}
+nav button {
+  appearance: none; background: none; border: 0;
+  border-bottom: 2px solid transparent; padding: 11px 4px; margin-right: 18px;
+  font: inherit; font-weight: 620; font-size: 13px;
+  color: var(--muted); cursor: pointer; letter-spacing: .01em;
+}
+nav button:hover { color: var(--ink); }
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--velvet); }
+
+main { padding: 6px 24px 40px; max-width: 1640px; margin: 0 auto; }
+section[hidden] { display: none; }
+
+/* ------------------------------------------------------ titulo de secao */
+
+.secao {
+  display: flex; align-items: baseline; gap: 12px;
+  margin: 30px 0 14px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--hair); position: relative;
+}
+.secao h2 {
+  margin: 0; font-size: 11.5px; font-weight: 660;
+  text-transform: uppercase; letter-spacing: .13em;
+}
+.secao p { margin: 0; font-size: 11.5px; color: var(--muted); }
+.secao::after {
+  content: ''; position: absolute; left: 0; bottom: -1px;
+  width: 40px; height: 2px; background: var(--velvet);
+}
+
+/* --------------------------------------------------------------- blocos */
+
+/* sem fundo, sem moldura: o bloco existe pelo espaco em volta */
+.cartao { background: none; border: 0; padding: 0; }
+
+.malha { display: grid; gap: 26px 30px; }
+.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.painel-topo { grid-template-columns: minmax(220px, 280px) 1fr; }
+.agora { grid-template-columns: minmax(300px, 1.3fr) minmax(190px, 0.75fr) minmax(240px, 1fr); }
+@media (max-width: 1200px) { .agora { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 1100px) { .c4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 860px) { .c2, .c4, .painel-topo, .agora { grid-template-columns: 1fr; } }
+
+.tit { font-weight: 640; font-size: 13px; }
+.nota { font-size: 11.5px; color: var(--muted); margin: 3px 0 14px; }
+
+/* --------------------------------------------------------- indicadores */
+
+/* a regua no topo e o que delimita o indicador, no lugar da caixa */
+.ind { padding-top: 11px; border-top: 2px solid var(--acento-cartao, var(--velvet)); }
+
+.cabeca {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .11em;
+  color: var(--muted); font-weight: 620;
+}
+.numerao {
+  font-size: 40px; font-weight: 660; letter-spacing: -.035em;
+  line-height: 1; margin: 9px 0 2px; font-variant-numeric: tabular-nums;
+}
+.bala-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.bala-topo .valor {
+  font-size: 25px; font-weight: 660; letter-spacing: -.028em;
+  font-variant-numeric: tabular-nums; margin: 7px 0 3px;
+}
+.bala-rodape {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 7px; font-size: 10.5px; color: var(--muted);
+}
+.faisca-cel { width: 84px; flex: none; }
+
+/* ---------------------------------------------------------------- botoes */
+
+.barra-cmd { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+
+button.cmd, select.cmd {
+  appearance: none; font: inherit; font-weight: 620; font-size: 12.5px;
+  letter-spacing: .012em; background: none; color: var(--ink2);
+  border: 1px solid var(--axis); border-radius: 7px;
+  padding: 8px 15px; cursor: pointer;
+  transition: border-color .12s, color .12s, background-color .12s;
+}
+button.cmd:hover:not(:disabled) {
+  color: var(--ink); border-color: var(--muted); background: var(--plane);
+}
+button.cmd:active:not(:disabled) { transform: translateY(1px); }
+button.cmd:disabled { opacity: .3; cursor: not-allowed; }
+
+button.cmd.forte {
+  background: var(--velvet); border-color: var(--velvet);
+  color: var(--sobre-velvet);            /* 5,31 -- letra clara, medida */
+}
+button.cmd.forte:hover:not(:disabled) {
+  background: #e01639; border-color: #e01639; color: var(--sobre-velvet);
+}
+/* num painel todo vermelho a cor nao distingue perigo sozinha:
+   quem avisa e a palavra "Matar" e a confirmacao */
+button.cmd.perigo { border-color: var(--velvet-fundo); color: var(--rosa-txt); }
+button.cmd.perigo:hover:not(:disabled) {
+  border-color: var(--velvet); color: var(--rosa); background: var(--plane);
+}
+select.cmd { padding-right: 10px; }
+
+/* ---------------------------------------------------------------- tabelas */
+
+table { border-collapse: collapse; width: 100%; font-size: 12px; }
+th {
+  text-align: left; font-size: 10px; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--muted); font-weight: 620;
+  border-bottom: 1px solid var(--axis); padding: 0 10px 7px 0; white-space: nowrap;
+}
+td { border-bottom: 1px solid var(--grid); padding: 7px 10px 7px 0; vertical-align: middle; }
+td:last-child, th:last-child { padding-right: 0; }
+tr:last-child td { border-bottom: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.dir { text-align: right; }
+.chave { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 8px; }
+.ctrl-cel { width: 104px; }
+.ctrl-cel input[type=range] { width: 100%; display: block; }
+
+/* estado por FORMA e palavra, nunca so por cor */
+.sinal { white-space: nowrap; color: var(--ink2); }
+.sinal i { font-style: normal; margin-right: 6px; color: var(--ink); }
+
+/* ---------------------------------------------------------------- diversos */
+
+.graf { width: 100%; display: block; }
+
+#dica {
+  position: fixed; pointer-events: none; opacity: 0;
+  background: var(--plane); color: var(--ink);
+  border: 1px solid var(--hair); border-radius: 7px;
+  padding: 7px 10px; font-size: 11.5px; line-height: 1.4;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .8);
+  transition: opacity .08s; z-index: 60; max-width: 240px;
+}
+
+.registro {
+  font-family: Consolas, "Cascadia Mono", monospace; font-size: 11px;
+  max-height: 160px; overflow-y: auto; color: var(--ink2);
+}
+.registro div { padding: 4px 0; border-bottom: 1px solid var(--grid); }
+.registro time { color: var(--muted); margin-right: 9px; }
+
+.vazio { color: var(--muted); font-size: 12px; padding: 22px 0; }
+
+/* aviso de espera: o colhedor esta no ar, o Isaac ainda nao */
+.aviso-espera {
+  border: 1px solid var(--hair); border-left: 2px solid var(--velvet);
+  border-radius: 7px; padding: 12px 14px; margin: 20px 0 4px;
+  font-size: 12.5px; color: var(--ink2); background: var(--plane);
+}
+.aviso-espera b { color: var(--ink); }
+.aviso-espera code {
+  font-family: Consolas, "Cascadia Mono", monospace;
+  color: var(--rosa); font-size: 12px;
+}
+.aviso-espera[hidden] { display: none; }
+
+.video {
+  border: 1px dashed var(--axis); border-radius: 8px;
+  aspect-ratio: 16 / 9; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 12px; text-align: center; padding: 16px;
+}

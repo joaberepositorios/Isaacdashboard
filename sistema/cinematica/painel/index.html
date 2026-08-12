@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Go2 &mdash; bancada de cinematica</title>
+<link rel="stylesheet" href="/app/estilo.css">
+<link rel="stylesheet" href="/app/cinematica.css">
+</head>
+<body>
+
+<main>
+
+  <!-- 1. o que esta acontecendo agora -->
+  <div class="faixa">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3.5 15.5a8.5 8.5 0 0 1 17 0"/>
+      <path d="M12 15.5l4.2-4.4"/>
+      <circle cx="12" cy="15.5" r="1.5" class="cheio"/>
+    </svg>
+    <span>Telemetria do pe</span>
+  </div>
+  <div class="malha c4 telemetria">
+    <div class="cartao"><div class="cabeca">Altura</div><div id="g-altura"></div></div>
+    <div class="cartao"><div class="cabeca">Avanco</div><div id="g-avanco"></div></div>
+    <div class="cartao"><div class="cabeca">Abertura</div><div id="g-lado"></div></div>
+    <div class="cartao"><div class="cabeca">Esticamento</div><div id="g-estica"></div></div>
+  </div>
+
+  <!-- 2. a mesa de comando de um lado, o robo do outro -->
+  <div class="meio">
+  <div class="palco">
+    <div class="caixa-cena">
+      <canvas id="cena" title="Arraste para girar, roda do mouse para aproximar,
+duplo clique volta ao inicio"></canvas>
+      <div class="ferramentas-cena">
+        <button class="ferr" id="recentrar" title="Recentrar a camera">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.4"/>
+            <path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/>
+          </svg>
+        </button>
+        <button class="ferr" id="ver-cima" title="Ver de cima">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3.5v13"/><path d="M7.5 12L12 16.5 16.5 12"/>
+            <path d="M4 20.5h16"/>
+          </svg>
+        </button>
+        <button class="ferr" id="ver-lado" title="Ver de lado">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3.5 12h13"/><path d="M12 7.5L16.5 12 12 16.5"/>
+            <path d="M20.5 4v16"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="comando">
+
+      <div class="grupo">
+        <div class="grupo-cab">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.6" class="cheio"/>
+            <path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/>
+          </svg>
+          <span>Membro</span>
+          <span class="cab-valor" id="perna-atual">--</span>
+        </div>
+        <div id="mapa"></div>
+      </div>
+
+      <div class="grupo">
+        <div class="grupo-cab">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 12.5a8 8 0 1 1-2.9-6.2"/>
+            <path d="M20.8 3.2l-.6 5-4.6-1.6z" class="cheio"/>
+          </svg>
+          <span>Movimentacao</span>
+        </div>
+        <div id="juntas" class="tres"></div>
+      </div>
+
+      <div class="grupo">
+        <div class="grupo-cab">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/>
+            <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/>
+            <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/>
+            <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>
+          </svg>
+          <span>Poses</span>
+        </div>
+        <div class="barra-cmd">
+          <button class="cmd" id="pose-neutra">Normal</button>
+          <button class="cmd" id="pose-agachar">Agachar</button>
+          <button class="cmd" id="pose-esticar">Esticar</button>
+        </div>
+      </div>
+
+      <!-- as vistas fecham a coluna: coladas nas poses, sem espaco morto -->
+      <div class="grupo vistas-grupo">
+        <div class="grupo-cab">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6z"/>
+            <circle cx="12" cy="12" r="2.6"/>
+          </svg>
+          <span>A perna por fora</span>
+        </div>
+        <div class="vistas-par">
+          <div><div id="vista-lat"></div><span class="vista-rot">de lado</span></div>
+          <div><div id="vista-fro"></div><span class="vista-rot">de frente</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- a matematica, para quem quiser: fechada por padrao -->
+  <details id="detalhes">
+    <summary>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4.5 4.5h15M4.5 19.5h15"/>
+        <path d="M8 4.5v15M16 4.5v15" opacity=".45"/>
+        <path d="M9.5 9.5h5M9.5 14.5h5"/>
+      </svg>
+      <span>A matematica por tras</span>
+      <span class="seta">&rsaquo;</span>
+    </summary>
+    <div class="conteudo-detalhes">
+
+      <div class="legenda-mat">
+        <span><i class="am rot"></i>rotacao 3&times;3</span>
+        <span><i class="am transl"></i>translacao, em metros</span>
+        <span><i class="am homog"></i>linha homogenea, sempre 0 0 0 1</span>
+        <span class="espaco"></span>
+        <span id="autoteste">autoteste --</span>
+      </div>
+
+      <div class="cadeia">
+        <div class="mat-bloco">
+          <div class="mat-tit">T<sub>01</sub> <em>abducao</em></div>
+          <div class="mat-form">Rx(q1) &middot; Trans(0, lado&middot;0,0955, 0)</div>
+          <div id="m01"></div>
+        </div>
+        <div class="op">&times;</div>
+        <div class="mat-bloco">
+          <div class="mat-tit">T<sub>12</sub> <em>quadril</em></div>
+          <div class="mat-form">Ry(q2) &middot; Trans(0, 0, &minus;0,213)</div>
+          <div id="m12"></div>
+        </div>
+        <div class="op">&times;</div>
+        <div class="mat-bloco">
+          <div class="mat-tit">T<sub>23</sub> <em>joelho</em></div>
+          <div class="mat-form">Ry(q3) &middot; Trans(0, 0, &minus;0,213)</div>
+          <div id="m23"></div>
+        </div>
+        <div class="op">=</div>
+        <div class="mat-bloco alvo">
+          <div class="mat-tit">T<sub>03</sub> <em>pose do pe</em></div>
+          <div class="mat-form">o resultado da cadeia</div>
+          <div id="m03"></div>
+        </div>
+      </div>
+
+      <div class="malha c2 fecho">
+        <div class="cartao">
+          <div class="mat-tit">Posicao do pe <em>ultima coluna de T<sub>03</sub></em></div>
+          <div id="pe-pos" class="pares"></div>
+        </div>
+        <div class="cartao">
+          <div class="mat-tit">Conferencia <em>a IK da posicao acima devolve os mesmos angulos</em></div>
+          <div id="ik-conf" class="pares"></div>
+        </div>
+      </div>
+    </div>
+  </details>
+
+</main>
+
+<script src="/app/cinema.js"></script>
+<script src="/app/medidores.js"></script>
+<script src="/app/robo3d.js"></script>
+<script src="/app/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+1 - Descobrir como funciona:
+
+Base de dados que isaac exibe durante o treinamento de
+algum robo, sendo ela acessavel ou nao, o objetivo é criar um
+dashboard interativo que exiba esses dados em formato de
+um dashboard colaborativo, que possamos controlar e ter um
+senso desse aprendizado por reforço, se as interações funcionaram
+falharam, quantos pontos negativos e positivos o aquele devido treinamento 
+funcionou, quanto foi funcional e assim por diante, é possivel
