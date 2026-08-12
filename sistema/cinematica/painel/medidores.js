@@ -262,3 +262,103 @@ function mapaPernas(host, ativa, aoEscolher) {
   host.innerHTML = '';
   host.appendChild(s);
 }
+
+const TRACO_L = 116;
+const TRACO_A = 34;
+const TRACO_PAD = 5;
+const TRACO_JANELA = 160;
+
+class Traco {
+
+  constructor(host) {
+    this.svg = svgEl('svg', {
+      class: 'traco', viewBox: `0 0 ${TRACO_L} ${TRACO_A}`,
+      width: TRACO_L, height: TRACO_A, 'aria-hidden': 'true',
+    });
+    this.zero = svgEl('line', { class: 't-zero' });
+    this.linha = svgEl('polyline', { class: 't-linha' });
+    this.cruz = svgEl('line', { class: 't-cruz' });
+    this.anel = svgEl('circle', { class: 't-anel', r: 5.5 });
+    this.ponto = svgEl('circle', { class: 't-ponto', r: 3.5 });
+    this.svg.append(this.zero, this.linha, this.cruz, this.anel, this.ponto);
+    host.appendChild(this.svg);
+    this.serie = [];
+  }
+
+  emX(i, n) {
+    const largura = TRACO_L - 2 * TRACO_PAD;
+    return TRACO_L - TRACO_PAD - (n - 1 - i) * (largura / (TRACO_JANELA - 1));
+  }
+
+  emY(v) {
+    const t = (v - this.lo) / (this.hi - this.lo || 1);
+    return TRACO_A - TRACO_PAD - Math.max(0, Math.min(1, t)) * (TRACO_A - 2 * TRACO_PAD);
+  }
+
+  definir(serie, lo, hi, alerta) {
+    this.serie = serie;
+    this.lo = lo;
+    this.hi = hi;
+    this.svg.classList.toggle('alerta', !!alerta);
+
+    const n = serie.length;
+    const visiveis = Math.min(n, TRACO_JANELA);
+    const ini = n - visiveis;
+
+    if (lo < 0 && hi > 0) {
+      const y = this.emY(0).toFixed(2);
+      this.zero.setAttribute('x1', TRACO_PAD);
+      this.zero.setAttribute('x2', TRACO_L - TRACO_PAD);
+      this.zero.setAttribute('y1', y);
+      this.zero.setAttribute('y2', y);
+      this.zero.style.display = '';
+    } else {
+      this.zero.style.display = 'none';
+    }
+
+    const pts = [];
+    for (let i = ini; i < n; i++) {
+      pts.push(this.emX(i - ini, visiveis).toFixed(2) + ',' + this.emY(serie[i]).toFixed(2));
+    }
+    this.linha.setAttribute('points', pts.join(' '));
+
+    this.marcar(visiveis - 1, visiveis, serie[n - 1], false);
+  }
+
+  marcar(i, n, valor, comCruz) {
+    if (i < 0 || valor === undefined) {
+      this.ponto.style.display = 'none';
+      this.anel.style.display = 'none';
+      this.cruz.style.display = 'none';
+      return;
+    }
+    const x = this.emX(i, n), y = this.emY(valor);
+    for (const e of [this.anel, this.ponto]) {
+      e.setAttribute('cx', x.toFixed(2));
+      e.setAttribute('cy', y.toFixed(2));
+      e.style.display = '';
+    }
+    if (comCruz) {
+      this.cruz.setAttribute('x1', x.toFixed(2));
+      this.cruz.setAttribute('x2', x.toFixed(2));
+      this.cruz.setAttribute('y1', 2);
+      this.cruz.setAttribute('y2', TRACO_A - 2);
+      this.cruz.style.display = '';
+    } else {
+      this.cruz.style.display = 'none';
+    }
+  }
+
+  indiceEm(clienteX) {
+    const cx = this.svg.getBoundingClientRect();
+    const n = Math.min(this.serie.length, TRACO_JANELA);
+    if (!n || cx.width === 0) return -1;
+    const px = (clienteX - cx.left) * (TRACO_L / cx.width);
+    let melhor = -1, dist = Infinity;
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(this.emX(i, n) - px);
+      if (d < dist) { dist = d; melhor = i; }
+    }
+    return melhor;
+  }
+}

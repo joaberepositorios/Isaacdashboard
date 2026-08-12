@@ -153,6 +153,28 @@ Com o servidor no ar, a página faz duas afirmações verificáveis:
   direta acabara de produzir, então era incapaz, por construção, de flagrar uma
   inversa que grampeia o alvo e devolve resposta errada calada.
 
+Cada valor da gaveta traz um **traço de tempo** embaixo do número: uma janela
+dos últimos 8 segundos, amostrada a 20 Hz. O número dá a precisão, o traço dá o
+movimento. Passar o mouse por cima varre o passado — o número mostra a amostra
+sob o cursor e volta ao vivo quando o mouse sai.
+
+Os sete traços são **gráficos separados de série única**, não um gráfico com
+várias linhas. Duas razões: a bancada tem identidade fechada em ciano e azul
+escuro, e três séries num mesmo eixo exigiriam três matizes distinguíveis sob
+daltonismo, o que obrigaria a inventar cor nova; e x, y e z já são grandezas que
+o leitor compara uma a uma. O traço usa `--azul-medio` (4,17:1 sobre a página) e
+o ponto atual `--ciano` (10,99:1) — de-ênfase para a história, acento para o
+agora.
+
+O eixo vertical é **fixo**, nunca ajustado ao que está na tela: x, y e z
+compartilham `±(alcance + abdução) = ±0,5215 m`, medido para cobrir os extremos
+reais (varredura de 480.000 poses deu no máximo 0,399 m). Escala automática
+faria uma perna parada parecer agitada, e domínio curto demais acharia o valor
+no topo sem avisar. Os ângulos usam o limite mecânico da própria junta.
+
+Trocar de perna **zera a história** — misturar duas pernas no mesmo traço seria
+mentira.
+
 - **"Conferência: IK aplicada de volta"**, na mesma gaveta — aplica a inversa na
   posição que a direta acabou de calcular e mostra o erro em graus. **Zero não é
   o único resultado certo:** se a perna estiver na segunda solução (depois de

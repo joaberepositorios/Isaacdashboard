@@ -46,13 +46,22 @@ function iniciar() {
     `autoteste ${t.ok ? 'ok' : 'ATENCAO'} · erro ${(t.erroMax * 1000).toFixed(4)} mm`;
   $('#autoteste').classList.toggle('falhou', !t.ok);
 
+  montarTiles();
   trocarPerna('FL');
   setInterval(publicarPose, 2000);
+  setInterval(() => {
+    amostrar();
+    if ($('#detalhes').open) pintarTiles();
+  }, PERIODO_AMOSTRA);
 }
+
+const PERIODO_AMOSTRA = 50;
 
 function trocarPerna(perna) {
   estado.ativa = perna;
   estado.anim = null;
+  limparHistorico();
+  amostrar();
   mapaPernas($('#mapa'), perna, trocarPerna);
   $('#perna-atual').textContent = `${perna} · ${NOME_PERNA[perna]}`;
   refrescar();
@@ -108,7 +117,7 @@ function refrescar() {
     .filter(s => s.q.some((v, i) => Math.abs(v - q[i]) > 1e-4));
   $('#pose-outra').disabled = alternativas.length === 0;
 
-  if ($('#detalhes').open) matematica(T, pe, q, lado);
+  if ($('#detalhes').open) matematica(T);
 
   publicarPose();
 }
@@ -139,31 +148,110 @@ function telemetria(pe, lado) {
   });
 }
 
-function matematica(T, pe, q, lado) {
+function matematica(T) {
   $('#m01').innerHTML = matrizHTML(T.T01);
   $('#m12').innerHTML = matrizHTML(T.T12);
   $('#m23').innerHTML = matrizHTML(T.T23);
   $('#m03').innerHTML = matrizHTML(T.T03);
+  pintarTiles();
+}
 
-  $('#pe-pos').innerHTML = ['x', 'y', 'z'].map((e, i) =>
-    `<span class="par"><i>${e}</i><b>${fmtM(pe[i])}</b></span>`).join('');
+const JANELA_HIST = 160;
+const CHAVES = ['x', 'y', 'z', 'q1', 'q2', 'q3', 'erro'];
+const hist = Object.fromEntries(CHAVES.map(k => [k, []]));
+const FMT = {
+  x: v => fmtM(v), y: v => fmtM(v), z: v => fmtM(v),
+  q1: v => fmtGrau(v), q2: v => fmtGrau(v), q3: v => fmtGrau(v),
+  erro: v => v.toFixed(4) + '°',
+};
+const ROTULO = { x: 'x', y: 'y', z: 'z', q1: "q1'", q2: "q2'", q3: "q3'", erro: 'erro' };
 
-  const s = ikPerna(pe[0], pe[1], pe[2], lado, RAMOS[0], LIMITES[estado.ativa]);
+let tiles = null;
+let ultimo = null;
 
-  if (!s.ok) {
-    $('#ik-conf').innerHTML =
-      [0, 1, 2].map(i => `<span class="par nao-bate"><i>q${i + 1}'</i><b>--</b></span>`)
-        .join('') +
-      '<span class="par nao-bate"><i>erro</i><b>--</b></span>';
-    return;
+function limparHistorico() {
+  for (const k of CHAVES) hist[k].length = 0;
+  ultimo = null;
+}
+
+function amostrar() {
+  const perna = estado.ativa, lado = LADO[perna];
+  const q = estado.angulos[perna];
+  const pe = origem(fkPerna(q[0], q[1], q[2], lado).T03);
+  const s = ikPerna(pe[0], pe[1], pe[2], lado, RAMOS[0], LIMITES[perna]);
+
+  const erro = s.ok ? Math.max(...s.qLim.map((v, i) => difAngulo(v, q[i]))) * GRAU : 180;
+  const qg = s.ok ? s.qLim.map(v => v * GRAU) : [0, 0, 0];
+
+  const valores = { x: pe[0], y: pe[1], z: pe[2], q1: qg[0], q2: qg[1], q3: qg[2], erro };
+  for (const k of CHAVES) {
+    hist[k].push(valores[k]);
+    if (hist[k].length > JANELA_HIST) hist[k].shift();
   }
+  ultimo = { s, erro, valores };
+}
 
-  const erro = Math.max(...s.qLim.map((v, i) => difAngulo(v, q[i]))) * GRAU;
-  const classe = erro < 1e-3 ? 'bate' : 'nao-bate';
-  $('#ik-conf').innerHTML =
-    s.qLim.map((v, i) => `<span class="par ${s.preso[i] ? 'nao-bate' : ''}"><i>q${i + 1}'</i>` +
-      `<b>${fmtGrau(v * GRAU)}</b></span>`).join('') +
-    `<span class="par ${classe}"><i>erro</i><b>${erro.toFixed(4)}°</b></span>`;
+function montarTiles() {
+  const criar = (cont, chaves) => chaves.map(k => {
+    const par = document.createElement('span');
+    par.className = 'par';
+    const rot = document.createElement('i');
+    rot.textContent = ROTULO[k];
+    const val = document.createElement('b');
+    par.append(rot, val);
+    cont.appendChild(par);
+    const t = { k, par, val, traco: new Traco(par), lendo: -1 };
+    t.traco.svg.addEventListener('pointermove', ev => {
+      t.lendo = t.traco.indiceEm(ev.clientX);
+      pintarTiles();
+    });
+    t.traco.svg.addEventListener('pointerleave', () => { t.lendo = -1; pintarTiles(); });
+    return t;
+  });
+
+  $('#pe-pos').innerHTML = '';
+  $('#ik-conf').innerHTML = '';
+  tiles = criar($('#pe-pos'), ['x', 'y', 'z'])
+    .concat(criar($('#ik-conf'), ['q1', 'q2', 'q3', 'erro']));
+}
+
+const EIXO = ALCANCE + GEO.L_ABD;
+
+function dominios() {
+  const lim = LIMITES[estado.ativa];
+  return {
+    x: [-EIXO, EIXO], y: [-EIXO, EIXO], z: [-EIXO, EIXO],
+    q1: [lim[0][0] * GRAU, lim[0][1] * GRAU],
+    q2: [lim[1][0] * GRAU, lim[1][1] * GRAU],
+    q3: [lim[2][0] * GRAU, lim[2][1] * GRAU],
+    erro: [0, 180],
+  };
+}
+
+function pintarTiles() {
+  if (!tiles || !ultimo) return;
+  const dom = dominios();
+  const s = ultimo.s;
+
+  for (const t of tiles) {
+    const serie = hist[t.k];
+    const [lo, hi] = dom[t.k];
+    const alerta = t.k === 'erro' ? ultimo.erro >= 1e-3
+      : (t.k[0] === 'q' ? !!(s.ok && s.preso[+t.k[1] - 1]) : false);
+
+    t.traco.definir(serie, lo, hi, alerta);
+
+    const n = Math.min(serie.length, JANELA_HIST);
+    const lendo = t.lendo >= 0 && t.lendo < n;
+    const i = lendo ? t.lendo : n - 1;
+    const v = serie[serie.length - n + i];
+
+    if (lendo) t.traco.marcar(i, n, v, true);
+    t.val.textContent = v === undefined ? '--' : FMT[t.k](v);
+    t.par.classList.toggle('lendo', lendo);
+    t.par.classList.toggle('nao-bate', alerta);
+    t.par.classList.toggle('bate', t.k === 'erro' && !alerta);
+  }
 }
 
 function difAngulo(a, b) {

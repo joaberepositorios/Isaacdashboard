@@ -323,4 +323,17 @@ details#detalhes[open] .seta { transform: rotate(90deg); }
 .pares .par.bate b { color: var(--ciano); }
 .pares .par.nao-bate b, .pares .par.nao-bate i { color: var(--ambar); }
 
+.traco { display: block; margin-top: 3px; touch-action: none; cursor: crosshair; }
+.t-zero { stroke: var(--axis); stroke-width: 1; }
+.t-linha {
+  fill: none; stroke: var(--azul-medio); stroke-width: 2;
+  stroke-linejoin: round; stroke-linecap: round;
+}
+.t-anel { fill: var(--fundo); }
+.t-ponto { fill: var(--ciano); }
+.t-cruz { stroke: var(--muted); stroke-width: 1; }
+.traco.alerta .t-linha { stroke: var(--ambar); }
+.traco.alerta .t-ponto { fill: var(--ambar); }
+.pares .par.lendo b { color: var(--ciano-claro); }
+
 #autoteste.falhou { color: var(--ambar); border-color: var(--ambar); }
