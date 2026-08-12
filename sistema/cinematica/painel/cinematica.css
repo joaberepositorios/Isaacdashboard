@@ -1,66 +1,40 @@
-/* ===========================================================================
-   BANCADA  --  escuro, ciano e azul escuro
-
-   O painel do treino do Isaac e' velvet; a bancada e' outra ferramenta. Por
-   isso os tokens sao redefinidos AQUI, sobre estilo.css, que traz a gramatica
-   comum (regua, filete, malha) sem cor propria.
-
-   O numero ao lado de cada token e o contraste medido contra a pagina #05090d.
-   A regra que organiza tudo: o CIANO INFORMA, o AZUL ESCURO E' MATERIAL. O
-   ciano mede 10,99 e escreve, risca e marca o dado; o azul escuro mede 1,65 e
-   nunca escreve -- ele e' o trilho, a moldura e o corpo do robo, e serve de
-   leito para o ciano por cima (6,66).
-
-   A gramatica continua a mesma do painel: sem gradiente, sem fundo de bloco,
-   estrutura feita de espaco, regua e filete.
-   =========================================================================== */
 
 :root {
   color-scheme: dark;
 
-  --fundo:   #05090d;   /* quase preto, levemente azulado */
+  --fundo:   #05090d;
   --surface: #05090d;
-  --plane:   #0b2029;   /* preenchimento discreto: avisos e hover */
+  --plane:   #0b2029;
 
-  --ink:   #e6f1f4;   /* 17,36 */
-  --ink2:  #b3c8ce;   /* 11,48 */
-  --muted: #7d949b;   /*  6,26 */
+  --ink:   #e6f1f4;
+  --ink2:  #b3c8ce;
+  --muted: #7d949b;
 
   --grid:  #0f2029;
   --axis:  #17303c;
   --hair:  rgba(230, 241, 244, 0.10);
   --trilho: #0e2b36;
-  --neutro: #4d6670;   /* 3,28 -- perna nao selecionada */
+  --neutro: #4d6670;
 
-  /* AZUL E CIANO
-     O ciano informa, o azul escuro e' material. Sobre a pagina escura o ciano
-     mede 10,99 e serve para traco fino, dado e letra; o azul escuro mede 1,65
-     e nunca escreve -- ele preenche: trilho, moldura, tronco do robo. E um bom
-     leito para o ciano por cima (6,66) e para a tinta (10,53). */
-  --ciano:       #22d3e8;   /* 10,99 -- traco, dado e letra */
-  --ciano-claro: #7fe9f5;   /* 14,15 */
-  --azul-medio:  #0a7d96;   /*  4,17 -- filete secundario */
-  --azul-escuro: #073b4a;   /*  1,65 -- AREA: trilho, moldura, material */
-  --azul-fundo:  #04222c;   /*  1,21 -- o leito mais fundo */
-  --sobre-ciano: #052a33;   /*  8,34 sobre o ciano -- letra ESCURA no botao */
+  --ciano:       #22d3e8;
+  --ciano-claro: #7fe9f5;
+  --azul-medio:  #0a7d96;
+  --azul-escuro: #073b4a;
+  --azul-fundo:  #04222c;
+  --sobre-ciano: #052a33;
 
-  --ambar: #e8a33f;         /*  9,27 -- junta no limite; separacao 96 do ciano */
+  --ambar: #e8a33f;
 
-  /* o que o desenho 3D le: nome pelo PAPEL, nao pela cor */
-  --acento:        #22d3e8;   /* elo da perna ativa */
-  --acento-claro:  #7fe9f5;   /* filete de volume por cima do elo */
-  --acento-fundo:  #0a7d96;   /* marca do pe no chao */
-  /* a cena tem tons proprios, de azul escuro: os tons da interface somem
-     contra a moldura do palco */
-  --suporte-3d:    #0b2733;   /* a bancada que segura o robo */
-  --corpo-3d:      #0c2d3a;   /* o tronco */
+  --acento:        #22d3e8;
+  --acento-claro:  #7fe9f5;
+  --acento-fundo:  #0a7d96;
+
+  --suporte-3d:    #0b2733;
+  --corpo-3d:      #0c2d3a;
   --corpo-borda-3d:#175366;
-  --grid-3d:       #16394a;   /* linhas do piso */
-  --axis-3d:       #235d73;   /* os dois eixos do piso */
+  --grid-3d:       #16394a;
+  --axis-3d:       #235d73;
 
-  /* os tokens que o estilo.css de base espera. Valor literal, e
-     nao var(--ciano): o canvas le estes nomes com getComputedStyle e um
-     var() nao resolvido viraria cor invalida. */
   --velvet: #22d3e8;
   --velvet-fundo: #073b4a;
   --rosa: #7fe9f5;
@@ -72,9 +46,6 @@
 
 body { background: var(--fundo); }
 
-/* O botao primario e' o lugar certo do ciano: area grande, e a letra escura
-   por cima mede 8,76. O padrao herdado do painel velvet pinta o fundo com
-   --velvet (aqui, azul escuro) e a letra ficaria escura sobre escuro. */
 button.cmd.forte {
   background: var(--ciano); border-color: var(--ciano);
   color: var(--sobre-ciano); font-weight: 660;
@@ -84,43 +55,24 @@ button.cmd.forte:hover:not(:disabled) {
   color: var(--sobre-ciano);
 }
 
-/* sem barra no topo: a pagina comeca na propria telemetria */
 main { max-width: 1500px; padding-top: 22px; }
 
-/* o valor que acompanha o rotulo do grupo (qual perna esta selecionada) */
 .cab-valor {
   margin-left: auto; color: var(--ciano); font-weight: 620;
   letter-spacing: .04em; text-transform: none; font-size: 11px;
 }
 
-
-/* ------------------------------------------------------------- estrutura */
-
-/* A pagina de cima para baixo: telemetria (o que esta acontecendo agora), a
-   linha do meio com o robo de um lado e a mesa de comando do outro, as vistas
-   e, por ultimo, a matematica. */
-
-/* respiro entre a telemetria e o palco: os rotulos de escala dos medidores
-   terminam rente a borda de cima da cena, e sem folga os dois blocos leem
-   como um so' */
 .meio {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   gap: 34px; align-items: start; margin-top: 36px;
 }
 @media (max-width: 1040px) { .meio { grid-template-columns: 1fr; } }
 
-/* na coluna estreita os grupos empilham; se a linha quebrar, viram duas
-   colunas para nao virar uma tira comprida */
 .comando { display: grid; grid-template-columns: 1fr; gap: 4px; }
 @media (max-width: 1040px) {
   .comando { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 34px; }
 }
 @media (max-width: 680px) { .comando { grid-template-columns: 1fr; } }
-
-/* ------------------------------------------------------- grupos de controle
-   Painel de comando, nao pagina de texto: cada grupo se anuncia por um icone e
-   uma palavra. O que a peca faz tem que estar na propria peca -- o anel mostra
-   o limite, o mostrador mostra o angulo, o campo mostra a unidade. */
 
 .grupo { margin-top: 14px; }
 .grupo:first-child { margin-top: 2px; }
@@ -138,16 +90,13 @@ main { max-width: 1500px; padding-top: 22px; }
 .ic .cheio { fill: currentColor; stroke: none; }
 .grupo-cab .ic { color: var(--ciano); }
 
-/* o palco tem altura propria e contida; a coluna de controles ao lado foi
-   compactada para terminar por perto, sem sobra grande de nenhum dos dois */
 .caixa-cena {
   position: relative; border: 1px solid var(--hair); border-radius: 12px;
   overflow: hidden; height: 500px;
-  background: var(--azul-fundo);   /* o palco tem leito proprio */
+  background: var(--azul-fundo);
 }
 #cena { display: block; width: 100%; height: 100%; touch-action: none; }
 
-/* ferramentas de camera: dentro da cena, como em qualquer visualizador 3D */
 .ferramentas-cena {
   position: absolute; top: 10px; right: 10px;
   display: flex; flex-direction: column; gap: 6px;
@@ -161,8 +110,6 @@ button.ferr {
 }
 button.ferr:hover { color: var(--ciano); border-color: var(--ciano); background: var(--azul-escuro); }
 button.ferr:active { transform: translateY(1px); }
-
-/* ---------------------------------------------------- mapa das quatro pernas */
 
 .mapa { width: 100%; max-width: 270px; display: block; }
 .mapa-corpo { fill: none; stroke: var(--axis); stroke-width: 1.5; }
@@ -184,10 +131,6 @@ button.ferr:active { transform: translateY(1px); }
 .mapa-perna.ativa text { fill: var(--ciano); }
 .mapa-perna:focus-visible rect { outline: none; stroke: var(--ciano-claro); }
 
-/* --------------------------------------------------- mostradores das juntas */
-
-/* teto de largura: quando a coluna empilha embaixo da cena, sem isto os
-   mostradores esticam pela tela inteira e viram tres luas */
 .tres {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
   max-width: 400px;
@@ -195,8 +138,7 @@ button.ferr:active { transform: translateY(1px); }
 
 .mostrador { width: 100%; display: block; cursor: grab; touch-action: none; }
 .mostrador.pegando { cursor: grabbing; }
-/* o anel inteiro e' a moldura; o trilho e' a faixa que a junta alcanca de
-   verdade, e precisa ser visivelmente mais claro que a moldura */
+
 .m-anel { fill: none; stroke: var(--azul-fundo); stroke-width: 10; }
 .m-trilho { fill: none; stroke: var(--azul-escuro); stroke-width: 10; stroke-linecap: round; }
 .m-cheio { fill: none; stroke: var(--ciano); stroke-width: 10; stroke-linecap: round; }
@@ -215,13 +157,11 @@ button.ferr:active { transform: translateY(1px); }
   fill: var(--muted); font-size: 9.5px; font-weight: 620;
   text-transform: uppercase; letter-spacing: .1em;
 }
-/* encostou no limite mecanico: ambar, e a palavra continua sendo o angulo */
+
 .mostrador.no-limite .m-cheio, .mostrador.no-limite .m-ponteiro { stroke: var(--ambar); }
 .mostrador.no-limite .m-eixo { fill: var(--ambar); }
 .mostrador.no-limite .m-alca { stroke: var(--ambar); }
 .mostrador.no-limite .m-num { fill: var(--ambar); }
-
-/* ------------------------------------------------------------------ campos */
 
 .campos {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
@@ -247,8 +187,6 @@ button.ferr:active { transform: translateY(1px); }
 #aviso { margin: 18px 0 0; border-left-color: var(--ambar); color: var(--ink2); }
 #aviso.forte { color: var(--ambar); }
 
-/* -------------------------------------------------------------- telemetria */
-
 .telemetria .cartao { padding-top: 11px; border-top: 2px solid var(--ciano); }
 .telemetria .cabeca { margin-bottom: 4px; }
 .medidor { width: 100%; max-width: 200px; display: block; }
@@ -263,8 +201,6 @@ button.ferr:active { transform: translateY(1px); }
 .g-sub { fill: var(--muted); font-size: 10.5px; }
 .g-lim { fill: var(--muted); font-size: 9.5px; }
 
-/* faixa de secao: mesmo vocabulario dos grupos de controle -- icone e uma
-   palavra, no lugar do titulo com paragrafo de explicacao */
 .faixa {
   display: flex; align-items: center; gap: 9px;
   margin: 36px 0 16px; padding-bottom: 9px;
@@ -277,11 +213,6 @@ button.ferr:active { transform: translateY(1px); }
   content: ''; position: absolute; left: 0; bottom: -1px;
   width: 40px; height: 2px; background: var(--ciano);
 }
-
-/* ------------------------------------------------------------------ vistas */
-
-/* as duas vistas moram embaixo do palco, lado a lado. O nome de cada uma e
-   HTML, nao texto dentro do SVG: SVG encolhido encolhe a letra junto */
 
 .vistas-par {
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
@@ -302,8 +233,6 @@ button.ferr:active { transform: translateY(1px); }
   letter-spacing: .12em; font-weight: 620;
 }
 
-/* ---------------------------------------------------------------- detalhes */
-
 details#detalhes { margin-top: 40px; border-top: 1px solid var(--hair); }
 details#detalhes summary {
   cursor: pointer; list-style: none; padding: 18px 0 0;
@@ -317,10 +246,6 @@ details#detalhes summary:hover { color: var(--ink); }
 details#detalhes .seta { transition: transform .15s; display: inline-block; }
 details#detalhes[open] .seta { transform: rotate(90deg); }
 .conteudo-detalhes { padding: 6px 0 10px; }
-
-/* ------------------------------------------------------------- matrizes
-   Escritas como matriz: colchete de verdade dos dois lados, coluna da
-   translacao separada por um filete, e a linha homogenea recuada. */
 
 .cadeia {
   display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap;
@@ -351,20 +276,18 @@ details#detalhes[open] .seta { transform: rotate(90deg); }
   font-family: Consolas, "Cascadia Mono", monospace; font-size: 12px;
   font-variant-numeric: tabular-nums; line-height: 1.35;
 }
-/* o colchete: tres bordas e nenhuma serifa falsa de caractere */
+
 .colch { width: 6px; flex: none; border: 1px solid var(--axis); }
 .colch.e { border-right: 0; }
 .colch.d { border-left: 0; }
 
 .mat .cel { text-align: right; color: var(--ink); }
-.mat .cel.zero { color: var(--muted); }   /* secundario, mas legivel: 4,52 */
+.mat .cel.zero { color: var(--muted); }
 .mat .cel.um { color: var(--ink2); }
-/* a coluna que responde "onde o frame esta" */
+
 .mat .cel.transl { color: var(--ciano); border-left: 1px solid var(--axis); padding-left: 7px; }
 .mat .cel.homog { color: var(--muted); font-size: 10.5px; padding-top: 3px; }
 
-/* o resultado da cadeia se distingue pelo colchete e pelo peso da translacao;
-   pintar a rotacao inteira de ciano competiria com a coluna que interessa */
 .mat-bloco.alvo .colch { border-color: var(--ciano); }
 .mat-bloco.alvo .mat .cel.transl { font-weight: 700; }
 .mat-bloco.alvo .mat-tit { color: var(--ciano-claro); }
@@ -396,7 +319,7 @@ details#detalhes[open] .seta { transform: rotate(90deg); }
   font-size: 16px; font-weight: 650; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
 }
-/* o erro da conferencia: ciano enquanto direta e inversa concordam */
+
 .pares .par.bate b { color: var(--ciano); }
 .pares .par.nao-bate b, .pares .par.nao-bate i { color: var(--ambar); }
 

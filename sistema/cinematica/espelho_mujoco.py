@@ -1,30 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-================================================================================
-  ESPELHO DO MUJOCO  --  o painel manda, o robo de verdade obedece
-================================================================================
-
-Abre a janela 3D do MuJoCo com o modelo real do Go2 (malhas do
-mujoco_menagerie) montado na bancada, e aplica AO VIVO a pose que voce mexe no
-painel do navegador: sliders, cinematica inversa, troca de perna, pose neutra.
-A perna ativa fica destacada em vermelho velvet, a mesma cor do painel.
-
-  1) num terminal:   python cinematica.py
-  2) noutro:         python espelho_mujoco.py
-
-Este script e' OPCIONAL: a bancada no navegador funciona sozinha, em qualquer
-maquina. Aqui e' para quem tem MuJoCo instalado e quer ver as malhas de verdade.
-
-COMO A POSE CHEGA
------------------
-O painel PUBLICA a pose no servidor a cada mudanca. Este script ASSINA: pede
-/api/pose?desde=<versao> e o pedido FICA PENDURADO ate' a pose mudar. Nao ha'
-laco de pergunta-resposta queimando CPU, e a janela anda junto com o slider.
-
-O modelo e' procurado nas pastas conhecidas e, se nao houver nenhuma, baixado
-uma vez do mujoco_menagerie (17 arquivos, so' na primeira execucao).
-================================================================================
-"""
 
 import argparse
 import json
@@ -37,8 +10,6 @@ import urllib.error
 import urllib.request
 
 try:
-    # line_buffering: as mensagens de conexao aparecem na hora, inclusive
-    # quando a saida esta redirecionada para um arquivo
     sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
 except Exception:
     pass
@@ -56,20 +27,10 @@ except ImportError:
 
 import numpy as np
 
-
-# ==============================================================================
-# 1) GEOMETRIA E POSE  --  os mesmos numeros de painel/cinema.js
-# ==============================================================================
-
 PERNAS = ["FL", "FR", "RL", "RR"]
-Z_BASE = 0.55                              # altura da barriga na bancada
-HOME = [0.0, 0.9, -1.5]                    # pose neutra de uma perna
-VELVET = np.array([0.80, 0.07, 0.20, 1.0])  # #cc1233, a marca do painel
-
-
-# ==============================================================================
-# 2) MODELO  (procura antes de baixar)
-# ==============================================================================
+Z_BASE = 0.55
+HOME = [0.0, 0.9, -1.5]
+VELVET = np.array([0.80, 0.07, 0.20, 1.0])
 
 _RAW = ("https://raw.githubusercontent.com/google-deepmind/"
         "mujoco_menagerie/main/unitree_go2")
@@ -88,7 +49,6 @@ _ARQUIVOS = [
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 
-
 def _candidatos():
     lar = os.path.expanduser("~")
     return [
@@ -96,7 +56,6 @@ def _candidatos():
         os.path.join(lar, "Downloads", "go2_cinematica_ws", "unitree_go2"),
         os.path.join(os.getcwd(), "go2_cinematica_ws", "unitree_go2"),
     ]
-
 
 def achar_ou_baixar():
     for pasta in _candidatos():
@@ -125,9 +84,6 @@ def achar_ou_baixar():
     print("  modelo ..... pronto em %s" % base)
     return base
 
-
-# a cena segue a paleta do painel: quase preto, sem gradiente chamativo, e o
-# unico vermelho e' o da perna ativa
 _ALT_POSTE = max(Z_BASE - 0.03, 0.05)
 
 _CENA = """<mujoco model="go2 bancada">
@@ -169,19 +125,16 @@ _CENA = """<mujoco model="go2 bancada">
 </mujoco>
 """.format(meio=_ALT_POSTE / 2, centro=0.032 + _ALT_POSTE / 2, prato=Z_BASE - 0.014)
 
-
 def montar_cena(pasta):
     caminho = os.path.join(pasta, "cena_bancada.xml")
     with open(caminho, "w", encoding="utf-8") as fp:
         fp.write(_CENA)
     return caminho
 
-
 def geoms_por_perna(m):
-    """{perna: [ids dos geoms visuais]} -- e' o que sera pintado de velvet"""
     grupos = {p: [] for p in PERNAS}
     for gid in range(m.ngeom):
-        if m.geom_group[gid] != 2:          # so' a malha visual
+        if m.geom_group[gid] != 2:
             continue
         nome = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, m.geom_bodyid[gid]) or ""
         for p in PERNAS:
@@ -189,11 +142,6 @@ def geoms_por_perna(m):
                 grupos[p].append(gid)
                 break
     return grupos
-
-
-# ==============================================================================
-# 3) ASSINATURA DA POSE  (fica pendurada ate' o painel mexer)
-# ==============================================================================
 
 class Assinante(threading.Thread):
     def __init__(self, url, parar):
@@ -237,14 +185,7 @@ class Assinante(threading.Thread):
                 versao = -1
                 time.sleep(1.0)
 
-
-# ==============================================================================
-# 4) JANELA DO MUJOCO
-# ==============================================================================
-
 def aplicar_pose(m, d, angulos):
-    """poe a pose do painel no modelo, presa aos limites do PROPRIO go2.xml"""
-    # a base fica presa na bancada: e' uma bancada, nao um passeio
     d.qpos[0:3] = [0.0, 0.0, Z_BASE]
     d.qpos[3:7] = [1.0, 0.0, 0.0, 0.0]
     for i, perna in enumerate(PERNAS):
@@ -253,9 +194,7 @@ def aplicar_pose(m, d, angulos):
         d.qpos[7 + 3 * i:10 + 3 * i] = np.clip(angulos.get(perna, HOME), lo, hi)
     d.qvel[:] = 0.0
 
-
 def pintar(m, grupos, ativa, matid0, rgba0):
-    """velvet na perna ativa, cor de fabrica nas outras"""
     for perna, ids in grupos.items():
         for gid in ids:
             if perna == ativa:
@@ -264,7 +203,6 @@ def pintar(m, grupos, ativa, matid0, rgba0):
             else:
                 m.geom_matid[gid] = matid0[gid]
                 m.geom_rgba[gid] = rgba0[gid]
-
 
 def rodar(m, d, assinante, parar):
     grupos = geoms_por_perna(m)
@@ -294,8 +232,6 @@ def rodar(m, d, assinante, parar):
                 ativa, angulos = assinante.ler()
                 with trava:
                     aplicar_pose(m, d, angulos)
-                    # repintar so' quando a perna ativa muda: mexer em geom_rgba
-                    # a cada quadro forca o viewer a reenviar material a toa
                     if ativa != ativa_pintada:
                         pintar(m, grupos, ativa, matid0, rgba0)
                         ativa_pintada = ativa
@@ -310,7 +246,6 @@ def rodar(m, d, assinante, parar):
             time.sleep(atraso if atraso > 0 else 0)
 
     parar.set()
-
 
 def principal():
     ap = argparse.ArgumentParser(description="Espelha o painel no MuJoCo")
@@ -350,7 +285,6 @@ def principal():
 
     print("\n  encerrado (%d poses aplicadas)." % assinante.recebidas)
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(principal())

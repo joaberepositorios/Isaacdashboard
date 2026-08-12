@@ -1,20 +1,3 @@
-/* ===========================================================================
-   MOSTRADORES  --  as pecas de leitura e de controle da bancada
-
-   Duas coisas moram aqui:
-
-     Mostrador  o controle das juntas. O ponteiro NAO e' uma barra disfarcada
-                de redondo: ele aponta para onde o elo aponta de verdade, e o
-                arco cinza e' o limite mecanico lido do go2.xml. Arrastar o
-                ponteiro gira a junta.
-
-     medidor    leitura pura, no formato do painel do Isaac: arco de 240
-                graus, ponteiro fino, numero grande. Nao se arrasta.
-
-   Convencao do ponteiro, a mesma da vista lateral:
-       zero aponta para BAIXO (elo pendurado), e o angulo cresce girando o
-       elo para tras -- exatamente como a perna se move na tela.
-   =========================================================================== */
 
 'use strict';
 
@@ -31,14 +14,10 @@ function corToken(nome, alt) {
   return v || alt;
 }
 
-/* ----------------------------------------------------------- ponto e arco */
-
-/** posicao na circunferencia para o angulo de junta a (rad) */
 function pontoAng(cx, cy, r, a) {
   return [cx - r * Math.sin(a), cy + r * Math.cos(a)];
 }
 
-/** caminho SVG de a0 ate a1 (a1 > a0), no sentido em que a junta gira */
 function arco(cx, cy, r, a0, a1) {
   const p = pontoAng(cx, cy, r, a0), q = pontoAng(cx, cy, r, a1);
   const grande = (a1 - a0) > Math.PI ? 1 : 0;
@@ -46,12 +25,10 @@ function arco(cx, cy, r, a0, a1) {
          `${q[0].toFixed(2)} ${q[1].toFixed(2)}`;
 }
 
-/* =========================================================== MOSTRADOR ==== */
-
 const L = 116, A = 124, CX = 58, CY = 49, R = 33;
 
 class Mostrador {
-  /** host: onde desenhar; aoMudar(rad) chamado enquanto o usuario arrasta */
+
   constructor(host, rotulo, ajuda, aoMudar) {
     this.host = host;
     this.aoMudar = aoMudar;
@@ -65,8 +42,6 @@ class Mostrador {
     });
     this.svg = s;
 
-    // anel completo bem apagado: sem ele, uma junta de faixa curta (a abducao
-    // so' anda 120 graus) fica um arco solto no meio do vazio
     s.appendChild(svgEl('circle', { class: 'm-anel', cx: CX, cy: CY, r: R }));
     s.appendChild(svgEl('path', { class: 'm-trilho', d: '' }));
     this.trilho = s.lastChild;
@@ -102,14 +77,11 @@ class Mostrador {
   _pintar() {
     const a = this.valor;
     this.trilho.setAttribute('d', arco(CX, CY, R, this.lo, this.hi));
-    // o preenchido sai do zero (elo pendurado) e vai ate o valor, mostrando de
-    // relance o quanto a junta girou e para que lado. O joelho do Go2 nunca
-    // chega a zero -- para ele, a ancora e o limite mais perto do zero.
+
     const ancora = Math.max(this.lo, Math.min(this.hi, 0));
     this.cheio.setAttribute('d', a >= ancora ? arco(CX, CY, R, ancora, a)
                                             : arco(CX, CY, R, a, ancora));
 
-    // o risco do zero so' faz sentido onde o zero existe (o joelho nao passa la)
     const temZero = this.lo <= 0 && this.hi >= 0;
     this.zero.style.display = temZero ? '' : 'none';
     const z1 = pontoAng(CX, CY, R - 9, 0), z2 = pontoAng(CX, CY, R + 8, 0);
@@ -123,22 +95,19 @@ class Mostrador {
 
     const g = a * 180 / Math.PI;
     this.num.textContent = (g >= 0 ? '+' : '') + g.toFixed(0) + '°';
-    // encostou no limite: o numero avisa, porque o ponteiro parado sozinho
-    // parece um travamento do programa
+
     const nolimite = a <= this.lo + 1e-4 || a >= this.hi - 1e-4;
     this.svg.classList.toggle('no-limite', nolimite);
     this.svg.setAttribute('aria-valuenow', g.toFixed(0));
   }
 
-  /** angulo da junta que corresponde ao ponto (x, y) da tela */
   _anguloDe(ev) {
     const r = this.svg.getBoundingClientRect();
     const k = L / r.width;
     const x = (ev.clientX - r.left) * k - CX;
     const y = (ev.clientY - r.top) * (A / r.height) - CY;
     let a = Math.atan2(-x, y);
-    // desdobra para o giro mais proximo: sem isso, uma junta que vai ate 260
-    // graus daria um salto ao cruzar a volta
+
     while (a - this.valor > Math.PI) a -= 2 * Math.PI;
     while (this.valor - a > Math.PI) a += 2 * Math.PI;
     return Math.max(this.lo, Math.min(this.hi, a));
@@ -156,9 +125,8 @@ class Mostrador {
 
     s.addEventListener('pointerdown', ev => {
       arrastando = true;
-      // capturar pode falhar (ponteiro ja solto, evento sintetico): o arrasto
-      // continua funcionando sem a captura, so' perde o rastro fora do SVG
-      try { s.setPointerCapture(ev.pointerId); } catch (e) { /* segue */ }
+
+      try { s.setPointerCapture(ev.pointerId); } catch (e) {}
       s.classList.add('pegando');
       this.aoMudar(this._anguloDe(ev));
     });
@@ -166,12 +134,11 @@ class Mostrador {
     const soltar = ev => {
       arrastando = false;
       s.classList.remove('pegando');
-      try { s.releasePointerCapture(ev.pointerId); } catch (e) { /* ja solto */ }
+      try { s.releasePointerCapture(ev.pointerId); } catch (e) {}
     };
     s.addEventListener('pointerup', soltar);
     s.addEventListener('pointercancel', soltar);
 
-    // teclado: o mostrador e um controle, entao tem que dar para usar sem mouse
     s.addEventListener('keydown', ev => {
       const passo = (ev.shiftKey ? 10 : 2) * Math.PI / 180;
       let v = null;
@@ -186,16 +153,10 @@ class Mostrador {
   }
 }
 
-/* ============================================================= MEDIDOR ==== */
-
-/** leitura em arco de 240 graus, no formato do painel do Isaac */
 function medidor(host, op) {
-  /* Geometria conferida: com varredura de 240 graus, as pontas do arco caem a
-     r*sin(30) ABAIXO do centro. O quadro precisa de cy + r/2 + metade da
-     espessura, senao as duas pontas saem cortadas -- que era o que acontecia
-     com cy=84, r=62 num quadro de 104 (a ponta caia em 115). */
+
   const l = 160, cx = 80, cy = 72, r = 56, esp = 9;
-  const a = Math.ceil(cy + r / 2 + esp / 2) + 18;   // +18 para os rotulos
+  const a = Math.ceil(cy + r / 2 + esp / 2) + 18;
   const DE = 210, ATE = -30;
   const ang = f => (DE + (ATE - DE) * Math.max(0, Math.min(1, f))) * Math.PI / 180;
   const pt = (g, raio) => [cx + raio * Math.cos(g), cy - raio * Math.sin(g)];
@@ -215,7 +176,6 @@ function medidor(host, op) {
     class: 'g-cheio' + (op.alerta ? ' alerta' : ''),
   }));
 
-  // riscos: so' os extremos e o meio. Mais que isso vira decoracao
   for (const k of [0, 0.5, 1]) {
     const g = ang(k), p1 = pt(g, r - esp / 2 - 3), p2 = pt(g, r - esp / 2 - 7);
     s.appendChild(svgEl('line', { x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], class: 'g-risco' }));
@@ -239,12 +199,6 @@ function medidor(host, op) {
   host.appendChild(s);
 }
 
-/* =============================================== VISTAS DE LADO E DE FRENTE */
-
-/** O bonequinho de palitos, sem rotulo em cada junta: o desenho ja diz.
-    Ele vive numa coluna estreita, entao o traco e' proporcionalmente mais
-    grosso e o nome da vista fica FORA do SVG, em HTML -- texto dentro de um
-    SVG encolhido junto com a figura vira ilegivel. */
 function vista2D(pontos, ii, jj) {
   const l = 300, alt = 230, m = 22;
   const ALC = GEO.L_COXA + GEO.L_CANELA;
@@ -273,10 +227,6 @@ function vista2D(pontos, ii, jj) {
   return s + '</svg>';
 }
 
-/* ================================================= MAPA DAS QUATRO PERNAS ==
-   Visto de cima, com a frente do robo para cima: clicar na perna e' mais
-   direto do que decorar que "RL" quer dizer traseira esquerda.             */
-
 function mapaPernas(host, ativa, aoEscolher) {
   const l = 230, alt = 98, cx = l / 2, cy = alt / 2 + 3;
   const s = svgEl('svg', { class: 'mapa', viewBox: `0 0 ${l} ${alt}`, height: alt });
@@ -290,8 +240,6 @@ function mapaPernas(host, ativa, aoEscolher) {
   rf.textContent = 'frente';
   s.appendChild(rf);
 
-  // posicao ESQUEMATICA, nao proporcional: na escala real as duas pernas da
-  // frente ficam a 9 cm uma da outra e o desenho vira um borrao
   const casas = { FL: [-1, -1], FR: [1, -1], RL: [-1, 1], RR: [1, 1] };
   for (const perna of PERNAS) {
     const [sx, sy] = casas[perna];

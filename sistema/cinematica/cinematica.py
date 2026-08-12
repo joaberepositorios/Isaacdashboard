@@ -1,35 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-================================================================================
-  BANCADA DE CINEMATICA DO GO2  --  servidor do painel
-================================================================================
-
-Mesma bancada didatica do script go2_cinematica.py, agora no navegador:
-escolher a perna, mexer q1/q2/q3 e ver a posicao do pe (cinematica direta),
-ou digitar x/y/z e ver os angulos (cinematica inversa), com as matrizes 4x4
-da cadeia e as duas vistas 2D.
-
-O QUE MUDOU EM RELACAO AO SCRIPT ORIGINAL
-------------------------------------------
-  - Nao usa MuJoCo, nem baixa as malhas do mujoco_menagerie, nem abre janela
-    OpenGL. O robo e' desenhado em canvas 2D com projecao propria: roda em
-    qualquer maquina, inclusive sem GPU e sem placa de video dedicada.
-  - Nao usa matplotlib, nem Tk, nem Qt -- some a cacada por back-end grafico
-    que era a causa da "janela que nao abre" no Windows.
-  - Nao instala nada: so' a biblioteca padrao do Python, como o resto do
-    Dashboard Isaac. Uma janela so', dentro do navegador.
-  - A matematica e' a MESMA, portada linha a linha para painel/cinema.js, e o
-    autoteste round-trip FK -> IK -> FK roda ao abrir a pagina (o resultado
-    aparece na pilula do canto superior direito).
-
-As medidas e os limites de junta foram lidos do proprio go2.xml do
-mujoco_menagerie e estao anotados em painel/cinema.js, com a linha de origem.
-
-  python cinematica.py                 so' esta maquina, porta 8790
-  python cinematica.py --porta 9000    outra porta
-  python cinematica.py --aberto        aceita conexoes de outras maquinas
-================================================================================
-"""
 
 import argparse
 import json
@@ -49,24 +17,16 @@ TIPOS = {".html": "text/html; charset=utf-8",
          ".svg": "image/svg+xml"}
 
 PERNAS = ("FL", "FR", "RL", "RR")
-ESPERA_ESPELHO = 10.0     # s que o pedido do espelho fica pendurado esperando
-JANELA_VIVO = 4.0         # s sem pedido do espelho para considera-lo desligado
-
+ESPERA_ESPELHO = 10.0
+JANELA_VIVO = 4.0
 
 class Pose:
-    """A pose corrente da bancada, e a ponte entre o painel e o MuJoCo.
-
-    O painel PUBLICA (POST) toda vez que algo muda; o espelho ASSINA (GET) e
-    fica pendurado ate' haver mudanca, em vez de perguntar em laco. Assim o
-    MuJoCo anda junto com o slider sem torrar CPU perguntando 60 vezes por
-    segundo se mudou alguma coisa.
-    """
 
     def __init__(self):
         self.cond = threading.Condition()
         self.versao = 0
         self.dado = None
-        self.visto_em = 0.0        # ultimo pedido do espelho
+        self.visto_em = 0.0
 
     def publicar(self, dado):
         with self.cond:
@@ -75,7 +35,6 @@ class Pose:
             self.cond.notify_all()
 
     def assinar(self, desde, espera):
-        """devolve (dado, versao); dado e' None se nada mudou ate' o prazo"""
         limite = time.monotonic() + espera
         with self.cond:
             self.visto_em = time.monotonic()
@@ -91,9 +50,7 @@ class Pose:
         with self.cond:
             return (time.monotonic() - self.visto_em) < JANELA_VIVO
 
-
 def validar(dado):
-    """so' passa o que o espelho consegue aplicar sem quebrar"""
     if not isinstance(dado, dict):
         raise ValueError("esperava um objeto")
     if dado.get("ativa") not in PERNAS:
@@ -113,7 +70,6 @@ def validar(dado):
             vs.append(v)
         limpo[perna] = vs
     return {"ativa": dado["ativa"], "angulos": limpo}
-
 
 class Manipulador(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -140,7 +96,6 @@ class Manipulador(BaseHTTPRequestHandler):
         self.wfile.write(corpo)
 
     def _arquivo(self, pasta, nome):
-        # so' o nome do arquivo, nunca o caminho: fecha a porta para ../../
         alvo = os.path.join(pasta, os.path.basename(nome))
         if not os.path.isfile(alvo):
             return self._erro(404, "nao encontrado: %s" % nome)
@@ -163,7 +118,6 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho.startswith("/app/"):
             return self._arquivo(APP, caminho)
 
-        # o espelho do MuJoCo pendura o pedido aqui ate' a pose mudar
         if caminho == "/api/pose":
             try:
                 desde = int(consulta.get("desde", "-1"))
@@ -185,9 +139,7 @@ class Manipulador(BaseHTTPRequestHandler):
         except Exception as e:
             return self._json({"erro": str(e)}, 400)
         self.server.pose.publicar(dado)
-        # a resposta diz ao painel se tem alguem do outro lado ouvindo
         return self._json({"espelho": self.server.pose.espelho_vivo()})
-
 
 def principal():
     ap = argparse.ArgumentParser(description="Bancada de cinematica do Go2")
@@ -230,7 +182,6 @@ def principal():
         print("\n  encerrando...")
         servidor.shutdown()
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(principal())

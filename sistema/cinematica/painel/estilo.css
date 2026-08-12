@@ -1,54 +1,36 @@
-/* Tema escuro, vermelho velvet. Sem fundo nos blocos: tudo e lido direto
-   sobre a pagina, e a estrutura vem de espaco, regua e filete -- nao de
-   caixas empilhadas. Nenhum gradiente.
-
-   O numero ao lado de cada token e o contraste medido contra a pagina
-   #0d0709. Vermelho profundo tem pouca luz: por isso existe um tom claro
-   separado para quando a cor precisa virar LETRA. */
 
 :root {
   color-scheme: dark;
 
   --fundo:   #0d0709;
-  --surface: #0d0709;   /* igual a pagina: os aneis das marcas somem no fundo */
-  --plane:   #17100f;   /* unico preenchimento que sobrou: dica e reservas */
+  --surface: #0d0709;
+  --plane:   #17100f;
 
-  --ink:   #f4ecec;   /* 17,17 */
-  --ink2:  #cbbcbe;   /* 10,91 */
-  --muted: #9a888c;   /*  5,97 -- passa o minimo de 4,5 para texto */
+  --ink:   #f4ecec;
+  --ink2:  #cbbcbe;
+  --muted: #9a888c;
 
   --grid:  #1e1417;
   --axis:  #302125;
   --hair:  rgba(244, 236, 236, 0.09);
-  --trilho: #2a1218;   /* fundo de barra e de medidor */
-  --neutro: #6d5a60;   /* coluna sem enfase: 3,08 */
+  --trilho: #2a1218;
+  --neutro: #6d5a60;
 
-  /* VELVET */
-  --velvet:       #cc1233;   /* 3,52 -- marca e preenchimento */
-  --velvet-fundo: #8e1229;   /* 2,16 -- so onde nao carrega dado */
-  --rosa:         #f2a6ae;   /* 10,31 -- o polo claro */
-  --rosa-txt:     #e8798a;   /*  7,16 -- vermelho quando vira letra */
-  --sobre-velvet: #fff5f6;   /*  5,31 sobre o velvet */
+  --velvet:       #cc1233;
+  --velvet-fundo: #8e1229;
+  --rosa:         #f2a6ae;
+  --rosa-txt:     #e8798a;
+  --sobre-velvet: #fff5f6;
 
-  /* os cinco indicadores compartilham o velvet: cartoes separados e
-     rotulados nao precisam de cor propria */
   --a1: var(--velvet); --a2: var(--velvet); --a3: var(--velvet);
   --a4: var(--velvet); --a5: var(--velvet);
 
-  /* AQUA e LARANJA -- os dois estados do contato com o chao.
-     Par medido: separacao 22,9 na visao normal e 12,5 sob daltonismo, os
-     dois acima dos pisos. O aqua e claro (7,54 de contraste), e e essa
-     luminosidade que salva o par: verde contra vermelho no mesmo tom mede
-     4,1 e reprovaria. */
-  --aqua:    #3fb0a0;   /* 7,54  pata no chao / termo que soma */
-  --laranja: #e8843f;   /* 7,42  pata no ar */
+  --aqua:    #3fb0a0;
+  --laranja: #e8843f;
 
-  /* somar x punir: aqua contra velvet mede 34,4 na visao normal e 16,7
-     sob daltonismo -- melhor que o par anterior e semanticamente obvio */
   --pos: var(--aqua);
   --neg: var(--velvet);
 
-  /* faixas do medidor: degraus de vinho, severidade por luminosidade */
   --zona1: #241419;
   --zona2: #391a24;
   --zona3: #542330;
@@ -66,8 +48,6 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 13px; line-height: 1.45;
 }
-
-/* ---------------------------------------------------------------- barra */
 
 header {
   display: flex; align-items: center; gap: 12px;
@@ -90,8 +70,7 @@ header {
   border: 1px solid var(--hair); border-radius: 999px; padding: 4px 11px;
 }
 .ponto { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
-/* recebendo = aqua, esperando = laranja, encerrado = velvet apagado.
-   O ponto nunca aparece sozinho: vem sempre colado no texto que o nomeia. */
+
 .ponto.vivo { background: var(--aqua); }
 .ponto.pausa { background: var(--laranja); }
 .ponto.morto { background: var(--velvet-fundo); }
@@ -113,8 +92,6 @@ nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(-
 main { padding: 6px 24px 40px; max-width: 1640px; margin: 0 auto; }
 section[hidden] { display: none; }
 
-/* ------------------------------------------------------ titulo de secao */
-
 .secao {
   display: flex; align-items: baseline; gap: 12px;
   margin: 30px 0 14px; padding-bottom: 8px;
@@ -130,9 +107,6 @@ section[hidden] { display: none; }
   width: 40px; height: 2px; background: var(--velvet);
 }
 
-/* --------------------------------------------------------------- blocos */
-
-/* sem fundo, sem moldura: o bloco existe pelo espaco em volta */
 .cartao { background: none; border: 0; padding: 0; }
 
 .malha { display: grid; gap: 26px 30px; }
@@ -147,9 +121,6 @@ section[hidden] { display: none; }
 .tit { font-weight: 640; font-size: 13px; }
 .nota { font-size: 11.5px; color: var(--muted); margin: 3px 0 14px; }
 
-/* --------------------------------------------------------- indicadores */
-
-/* a regua no topo e o que delimita o indicador, no lugar da caixa */
 .ind { padding-top: 11px; border-top: 2px solid var(--acento-cartao, var(--velvet)); }
 
 .cabeca {
@@ -171,8 +142,6 @@ section[hidden] { display: none; }
 }
 .faisca-cel { width: 84px; flex: none; }
 
-/* ---------------------------------------------------------------- botoes */
-
 .barra-cmd { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
 
 button.cmd, select.cmd {
@@ -190,20 +159,17 @@ button.cmd:disabled { opacity: .3; cursor: not-allowed; }
 
 button.cmd.forte {
   background: var(--velvet); border-color: var(--velvet);
-  color: var(--sobre-velvet);            /* 5,31 -- letra clara, medida */
+  color: var(--sobre-velvet);
 }
 button.cmd.forte:hover:not(:disabled) {
   background: #e01639; border-color: #e01639; color: var(--sobre-velvet);
 }
-/* num painel todo vermelho a cor nao distingue perigo sozinha:
-   quem avisa e a palavra "Matar" e a confirmacao */
+
 button.cmd.perigo { border-color: var(--velvet-fundo); color: var(--rosa-txt); }
 button.cmd.perigo:hover:not(:disabled) {
   border-color: var(--velvet); color: var(--rosa); background: var(--plane);
 }
 select.cmd { padding-right: 10px; }
-
-/* ---------------------------------------------------------------- tabelas */
 
 table { border-collapse: collapse; width: 100%; font-size: 12px; }
 th {
@@ -220,11 +186,8 @@ tr:last-child td { border-bottom: 0; }
 .ctrl-cel { width: 104px; }
 .ctrl-cel input[type=range] { width: 100%; display: block; }
 
-/* estado por FORMA e palavra, nunca so por cor */
 .sinal { white-space: nowrap; color: var(--ink2); }
 .sinal i { font-style: normal; margin-right: 6px; color: var(--ink); }
-
-/* ---------------------------------------------------------------- diversos */
 
 .graf { width: 100%; display: block; }
 
@@ -246,7 +209,6 @@ tr:last-child td { border-bottom: 0; }
 
 .vazio { color: var(--muted); font-size: 12px; padding: 22px 0; }
 
-/* aviso de espera: o colhedor esta no ar, o Isaac ainda nao */
 .aviso-espera {
   border: 1px solid var(--hair); border-left: 2px solid var(--velvet);
   border-radius: 7px; padding: 12px 14px; margin: 20px 0 4px;
