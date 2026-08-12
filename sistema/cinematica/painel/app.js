@@ -10,7 +10,36 @@ const estado = {
   angulos: Object.fromEntries(PERNAS.map(p => [p, HOME.slice()])),
   anim: null,
   marcha: null,
+  cenario: 1,
+  comando: { vx: 0, wz: 0, camera: 0, reiniciar: 0 },
 };
+
+const VEL_LIVRE = 0.40;
+const GIRO_LIVRE = 0.50;
+
+function trocarCenario(n) {
+  estado.cenario = n;
+  pararMarcha();
+  estado.comando.vx = 0;
+  estado.comando.wz = 0;
+  $('#cenario-1').setAttribute('aria-pressed', String(n === 1));
+  $('#cenario-2').setAttribute('aria-pressed', String(n === 2));
+  $('#pilotagem').hidden = n !== 2;
+  $('#cenario-atual').textContent = n === 1 ? 'bancada' : CAMERAS_NOME[estado.comando.camera];
+  publicarPose();
+}
+
+const CAMERAS_NOME = ['chase-cam', 'superior', 'frontal', 'traseira',
+  'lateral dir', 'lateral esq', 'diagonal', 'primeira pessoa', 'livre'];
+
+function virar(sentido) {
+  if (estado.cenario !== 2) return;
+  estado.comando.wz = estado.comando.wz === sentido * GIRO_LIVRE
+    ? 0 : sentido * GIRO_LIVRE;
+  $('#virar-esq').setAttribute('aria-pressed', String(estado.comando.wz > 0));
+  $('#virar-dir').setAttribute('aria-pressed', String(estado.comando.wz < 0));
+  publicarPose();
+}
 
 function limitesSelecao() {
   return [0, 1, 2].map(i => [
@@ -48,6 +77,20 @@ function iniciar() {
   });
   $('#marcha-frente').addEventListener('click', () => marchar(1));
   $('#marcha-tras').addEventListener('click', () => marchar(-1));
+  $('#cenario-1').addEventListener('click', () => trocarCenario(1));
+  $('#cenario-2').addEventListener('click', () => trocarCenario(2));
+  $('#virar-esq').addEventListener('click', () => virar(1));
+  $('#virar-dir').addEventListener('click', () => virar(-1));
+  $('#camera').addEventListener('click', () => {
+    estado.comando.camera = (estado.comando.camera + 1) % CAMERAS_NOME.length;
+    $('#cenario-atual').textContent = CAMERAS_NOME[estado.comando.camera];
+    publicarPose();
+  });
+  $('#reiniciar-livre').addEventListener('click', () => {
+    estado.comando.reiniciar++;
+    publicarPose();
+  });
+  trocarCenario(1);
   $('#recentrar').addEventListener('click', () => bancada.reiniciarCamera());
   $('#ver-cima').addEventListener('click', () => bancada.verDeCima());
   $('#ver-lado').addEventListener('click', () => bancada.verDeLado());
@@ -103,9 +146,21 @@ function trocarPerna(alvo, aditivo) {
 }
 
 function marchar(sentido) {
-  const jaIa = estado.marcha && estado.marcha.sentido === sentido;
+  const jaIa = estado.cenario === 2
+    ? estado.comando.vx === sentido * VEL_LIVRE
+    : estado.marcha && estado.marcha.sentido === sentido;
   pararMarcha();
   if (jaIa) return;
+
+  // no cenario 2 quem anda e' o robo de verdade: o painel manda velocidade,
+  // e a marcha sai do controlador dinamico do outro lado
+  if (estado.cenario === 2) {
+    estado.comando.vx = sentido * VEL_LIVRE;
+    $(sentido > 0 ? '#marcha-frente' : '#marcha-tras').setAttribute('aria-pressed', 'true');
+    publicarPose();
+    return;
+  }
+
   estado.anim = null;
   estado.marcha = { sentido, t0: performance.now() / 1000 };
   $(sentido > 0 ? '#marcha-frente' : '#marcha-tras').setAttribute('aria-pressed', 'true');
@@ -114,6 +169,7 @@ function marchar(sentido) {
 
 function pararMarcha() {
   estado.marcha = null;
+  if (estado.cenario === 2) estado.comando.vx = 0;
   $('#marcha-frente').setAttribute('aria-pressed', 'false');
   $('#marcha-tras').setAttribute('aria-pressed', 'false');
 }
@@ -379,6 +435,7 @@ function publicarPose() {
   const agora = performance.now();
   const carga = {
     ativa: estado.ativa, selecao: estado.selecao.slice(), angulos: estado.angulos,
+    cenario: estado.cenario, comando: estado.comando,
   };
   if (ponte.emVoo || agora - ponte.ultimo < PERIODO_ENVIO) {
     ponte.atrasado = carga;

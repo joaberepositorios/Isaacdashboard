@@ -70,6 +70,25 @@ def validar(dado):
     angulos = dado.get("angulos")
     if not isinstance(angulos, dict) or set(angulos) != set(PERNAS):
         raise ValueError("faltam angulos de alguma perna")
+    cenario = dado.get("cenario", 1)
+    if cenario not in (1, 2):
+        raise ValueError("cenario precisa ser 1 ou 2")
+
+    cru = dado.get("comando") or {}
+    if not isinstance(cru, dict):
+        raise ValueError("comando invalido")
+    def numero(nome, teto):
+        v = float(cru.get(nome, 0.0))
+        if v != v or v in (float("inf"), float("-inf")):
+            raise ValueError("%s nao finito" % nome)
+        return max(-teto, min(teto, v))
+    comando = {
+        "vx": numero("vx", 1.0),
+        "wz": numero("wz", 2.0),
+        "camera": int(cru.get("camera", 0)) % 9,
+        "reiniciar": int(cru.get("reiniciar", 0)),
+    }
+
     limpo = {}
     for perna, q in angulos.items():
         if not isinstance(q, list) or len(q) != 3:
@@ -81,7 +100,8 @@ def validar(dado):
                 raise ValueError("angulo nao finito em %s" % perna)
             vs.append(v)
         limpo[perna] = vs
-    return {"ativa": dado["ativa"], "selecao": limpa, "angulos": limpo}
+    return {"ativa": dado["ativa"], "selecao": limpa, "angulos": limpo,
+            "cenario": cenario, "comando": comando}
 
 class Manipulador(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"

@@ -27,6 +27,8 @@ except ImportError:
 
 import numpy as np
 
+import cenario_livre
+
 PERNAS = ["FL", "FR", "RL", "RR"]
 Z_BASE = 0.55
 HOME = [0.0, 0.9, -1.5]
@@ -125,6 +127,12 @@ _CENA = """<mujoco model="go2 bancada">
 </mujoco>
 """.format(meio=_ALT_POSTE / 2, centro=0.032 + _ALT_POSTE / 2, prato=Z_BASE - 0.014)
 
+def montar_cena_livre(pasta):
+    caminho = os.path.join(pasta, "cena_livre.xml")
+    with open(caminho, "w", encoding="utf-8") as fp:
+        fp.write(cenario_livre.CENA)
+    return caminho
+
 def montar_cena(pasta):
     caminho = os.path.join(pasta, "cena_bancada.xml")
     with open(caminho, "w", encoding="utf-8") as fp:
@@ -157,6 +165,16 @@ class Assinante(threading.Thread):
         with self.lock:
             sel = self.pose.get("selecao") or [self.pose["ativa"]]
             return tuple(sel), dict(self.pose["angulos"])
+
+    def cenario(self):
+        with self.lock:
+            return int(self.pose.get("cenario", 1))
+
+    def comando(self):
+        with self.lock:
+            c = self.pose.get("comando") or {}
+            return (float(c.get("vx", 0.0)), float(c.get("wz", 0.0)),
+                    int(c.get("camera", 0)), int(c.get("reiniciar", 0)))
 
     def _estado(self, ligado, detalhe=""):
         if ligado != self.ligado:
@@ -206,7 +224,44 @@ def pintar(m, grupos, selecao, matid0, rgba0):
                 m.geom_matid[gid] = matid0[gid]
                 m.geom_rgba[gid] = rgba0[gid]
 
-def rodar(m, d, assinante, parar):
+def rodar_livre(pasta, assinante, parar):
+    """Cenario 2: robo solto no chao, dinamica completa, dirigido pelo painel.
+    Devolve quando o painel troca de cenario ou a janela fecha."""
+    m = mujoco.MjModel.from_xml_path(montar_cena_livre(pasta))
+    d = mujoco.MjData(m)
+    motor = cenario_livre.MotorDinamico(m, d)
+    motor.reiniciar()
+    reinicio_visto = assinante.comando()[3]
+    quedas = 0
+
+    with mujoco.viewer.launch_passive(m, d) as v:
+        trava = v.lock()
+        dt = 1.0 / 100.0
+        prox = time.monotonic()
+        while not parar.is_set() and v.is_running():
+            if assinante.cenario() != 2:
+                return True
+            vx, wz, icam, reinicio = assinante.comando()
+            try:
+                with trava:
+                    if reinicio != reinicio_visto:
+                        reinicio_visto = reinicio
+                        motor.reiniciar()
+                    if motor.passo((vx, 0.0, wz), dt):
+                        quedas += 1
+                        print("  queda ...... %d (levantou no lugar)" % quedas)
+                    x, y, z, psi = motor.estado
+                    cenario_livre.aplicar_camera(v.cam, icam, x, y, z, psi)
+                v.sync()
+            except Exception:
+                traceback.print_exc()
+                break
+            prox += dt
+            atraso = prox - time.monotonic()
+            time.sleep(atraso if atraso > 0 else 0)
+    return False
+
+def rodar_bancada(m, d, assinante, parar):
     grupos = geoms_por_perna(m)
     matid0 = m.geom_matid.copy()
     rgba0 = m.geom_rgba.copy()
@@ -230,6 +285,8 @@ def rodar(m, d, assinante, parar):
         dt = 1.0 / 60.0
         prox = time.monotonic()
         while not parar.is_set() and v.is_running():
+            if assinante.cenario() != 1:
+                return True
             try:
                 selecao, angulos = assinante.ler()
                 with trava:
@@ -246,8 +303,7 @@ def rodar(m, d, assinante, parar):
             prox += dt
             atraso = prox - time.monotonic()
             time.sleep(atraso if atraso > 0 else 0)
-
-    parar.set()
+    return False
 
 def principal():
     ap = argparse.ArgumentParser(description="Espelha o painel no MuJoCo")
@@ -267,19 +323,29 @@ def principal():
         print("\n  %s\n" % e)
         return 1
 
-    m = mujoco.MjModel.from_xml_path(montar_cena(pasta))
-    d = mujoco.MjData(m)
-
     parar = threading.Event()
     assinante = Assinante(url, parar)
     assinante.start()
 
     print("  janela ..... abrindo; mexa no painel e o robo acompanha")
+    print("  cenarios ... 1 bancada (preso no suporte)  2 solto no chao")
     print("  feche a janela do MuJoCo para encerrar")
     print("")
 
     try:
-        rodar(m, d, assinante, parar)
+        # cada cenario tem a sua cena; trocar exige remontar o modelo, entao a
+        # funcao devolve True quando o painel pede o outro e o laco reabre
+        while not parar.is_set():
+            if assinante.cenario() == 2:
+                print("  cenario .... 2, solto no chao (dinamica completa)")
+                trocou = rodar_livre(pasta, assinante, parar)
+            else:
+                m = mujoco.MjModel.from_xml_path(montar_cena(pasta))
+                d = mujoco.MjData(m)
+                print("  cenario .... 1, bancada")
+                trocou = rodar_bancada(m, d, assinante, parar)
+            if not trocou:
+                break
     except KeyboardInterrupt:
         pass
     finally:

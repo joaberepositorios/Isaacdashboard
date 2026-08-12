@@ -21,6 +21,47 @@ dela exatamente no mesmo lugar. Ele fica desligado quando falta alternativa para
 alguma das selecionadas: com uma perna, 18,4% das poses têm duas soluções; com
 as quatro juntas, só 7,8%.
 
+## Dois cenários
+
+O grupo **Cenario** troca entre dois mundos. A troca vale também no MuJoCo: o
+espelho remonta a cena e reabre a janela sozinho.
+
+| | **1 · Bancada** | **2 · Solto** |
+|---|---|---|
+| o robô | preso no suporte | livre no chão |
+| física | nenhuma — só cinemática | **completa**: gravidade, atrito, contato, torque |
+| quem move as pernas | você, pelos mostradores | um controlador PD, a partir da velocidade que você pede |
+| pode cair? | não | **sim** — e se levanta sozinho no lugar |
+| controles | mostradores, poses, Inverter, marcha | Frente/Tras, virar, câmera, reiniciar |
+
+No cenário 2 a pilotagem aparece embaixo dos botões de cenário: **‹** e **›**
+viram, **Camera** cicla pelas nove vistas (chase-cam, superior, frontal,
+traseira, as duas laterais, diagonal, primeira pessoa e livre) e **Reiniciar**
+põe o robô de pé na origem. Os botões **Frente** e **Tras** mudam de sentido:
+no cenário 1 animam as juntas, no cenário 2 mandam **velocidade** e quem produz
+a marcha é o controlador do outro lado.
+
+A marcha do cenário 2 é **crawl** — três patas no chão o tempo todo, com fases
+FL 0, RR ¼, FR ½, RL ¾ — diferente do trote do cenário 1. Medido sem janela, a
+100 Hz: parado ele fica de pé; a 0,40 m/s andou 1,98 m em 6 s; a −0,30 m/s
+andou −1,48 m; girando a 0,5 rad/s virou 101° em 6 s. Nenhuma queda nesses
+testes, mas **quedas são possíveis** — é física de verdade, e o console do
+espelho imprime cada uma.
+
+**A origem do cenário 2** é o `go2_visualizador2.py`. Duas coisas mudaram na
+adaptação, e valem registro:
+
+- O arquivo original **não roda**: a linha 1 é `izaodr# -*- coding: utf-8 -*-`,
+  com lixo colado no início, que levanta `NameError` ao executar.
+- A `ik_perna` dele carrega o mesmo defeito que esta bancada tinha — grampeia o
+  alvo com `min(..., soma - 0.012)` e devolve resposta errada calada. Aqui ela
+  foi reescrita para **recusar** o alvo fora de alcance; quando isso acontece a
+  perna mantém o ângulo atual em vez de inventar um. Nos testes da marcha o
+  contador de recusas ficou em zero, ou seja, a correção não estreitou nada.
+
+O que ficou de fora do original: o dashboard em matplotlib, porque o navegador
+já é o painel, e o piloto automático com rota circular.
+
 ## Ciclo de marcha
 
 **Frente** e **Tras** põem as pernas selecionadas num ciclo de marcha contínuo.
@@ -199,7 +240,8 @@ prende o robô no suporte justamente para tirar a física do caminho.
 
 ```
 cinematica.py        servidor (http.server da biblioteca padrão) e a ponte /api/pose
-espelho_mujoco.py    opcional: abre o MuJoCo e aplica a pose do painel ao vivo
+espelho_mujoco.py    opcional: abre o MuJoCo, escolhe o cenário e aplica o painel ao vivo
+cenario_livre.py     cenário 2: cena sem suporte, marcha crawl com física completa e as 9 câmeras
 painel/index.html    a página
 painel/cinema.js     matrizes, FK, IK, limites de junta e autoteste
 painel/medidores.js  mostrador arrastável, medidor de telemetria, vistas e mapa

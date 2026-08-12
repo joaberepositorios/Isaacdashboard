@@ -198,6 +198,9 @@ button.ferr:active { transform: translateY(1px); }
 .campos input:focus { outline: none; }
 
 .barra-cmd { margin-top: 10px; }
+/* o estilo.css compartilhado poe display:flex em .barra-cmd, e regra de autor
+   vence o [hidden] do navegador -- sem isto a pilotagem nunca some */
+.barra-cmd[hidden] { display: none; }
 #aviso { margin: 18px 0 0; border-left-color: var(--ambar); color: var(--ink2); }
 #aviso.forte { color: var(--ambar); }
 
