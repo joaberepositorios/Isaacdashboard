@@ -130,6 +130,13 @@ button.ferr:active { transform: translateY(1px); }
 .mapa-perna.ativa rect { stroke: var(--ciano); stroke-width: 2; fill: var(--azul-escuro); }
 .mapa-perna.ativa text { fill: var(--ciano); }
 .mapa-perna:focus-visible rect { outline: none; stroke: var(--ciano-claro); }
+.mapa-perna.guia text { fill: var(--ciano-claro); }
+
+.mapa-tronco { cursor: pointer; }
+.mapa-tronco .mapa-corpo { pointer-events: all; transition: stroke .12s, fill .12s; }
+.mapa-tronco:hover .mapa-corpo { stroke: var(--muted); fill: var(--plane); }
+.mapa-tronco.ativa .mapa-corpo { stroke: var(--ciano); fill: var(--azul-escuro); }
+.mapa-tronco:focus-visible .mapa-corpo { outline: none; stroke: var(--ciano-claro); }
 
 .tres {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;

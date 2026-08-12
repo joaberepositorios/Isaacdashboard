@@ -11,14 +11,50 @@ palavra, sem títulos nem parágrafos de explicação.
 
 | grupo | o que faz |
 |---|---|
-| **Membro** | escolhe a perna clicando no mapa do robô visto de cima |
+| **Membro** | escolhe **uma ou mais** pernas no mapa do robô visto de cima |
 | **Movimentação** | gira as juntas arrastando os mostradores — o trecho claro do anel é a faixa que a junta alcança de verdade, lida do `go2.xml` (**cinemática direta**) |
 | **Poses** | Normal, Agachar, Esticar, Inverter |
 | **A perna por fora** | as duas vistas 2D, de lado e de frente |
 
-**Inverter** leva a perna à *outra* configuração que põe o pé exatamente no
-mesmo lugar. Ele fica desligado quando não existe outra: em 24.000 poses
-medidas, 81,6% têm solução única e 18,4% têm duas.
+**Inverter** leva cada perna selecionada à *outra* configuração que põe o pé
+dela exatamente no mesmo lugar. Ele fica desligado quando falta alternativa para
+alguma das selecionadas: com uma perna, 18,4% das poses têm duas soluções; com
+as quatro juntas, só 7,8%.
+
+## Selecionar uma perna, duas, três ou todas
+
+No mapa visto de cima:
+
+| gesto | resultado |
+|---|---|
+| clique numa perna | só ela |
+| **Ctrl** (ou **⌘**, ou **Shift**) + clique numa perna | põe ou tira da seleção |
+| clique no **tronco** do robô | as quatro de uma vez |
+| Ctrl + clique no tronco, com as quatro já escolhidas | volta para uma |
+
+Tudo na mesa de comando passa a agir sobre a seleção inteira: mostradores,
+poses e *Inverter*. A cena 3D e o **MuJoCo** destacam todas as escolhidas.
+
+Três regras que evitam mentira quando há mais de uma perna:
+
+- **Os mostradores oferecem a intersecção dos limites.** As dianteiras giram o
+  quadril de −90° a 200°, as traseiras de −30° a 260°; com uma de cada lado
+  selecionada o mostrador só vai de −30° a 200°, porque fora disso o ângulo
+  mostrado seria inalcançável para parte da seleção. Ao mudar a seleção, quem
+  estiver fora da intersecção entra nela — o movimento aparece na cena.
+- **O ângulo é absoluto, não relativo.** Mexer um mostrador põe todas as
+  selecionadas no mesmo ângulo. Se elas estavam diferentes, o primeiro
+  arrasto as unifica.
+- **A matemática segue a perna-guia**, que é a última que você clicou direto —
+  ela aparece com o rótulo em ciano claro no mapa. Telemetria, matrizes, vistas
+  2D e os traços de tempo são todos dela. *Inverter* é a exceção: ele calcula
+  uma solução **por perna**, com o lado de cada uma.
+
+Esse último ponto custou uma versão errada. Parecia que, por simetria, aplicar
+os ângulos da guia nas outras preservaria o pé de todas. Não preserva: espelhar
+em y exige inverter o sinal de q1, e aqui todas as pernas usam o *mesmo* q1. A
+primeira versão deslocava o pé em até **326 mm**; a versão por perna erra
+2×10⁻¹³ mm.
 
 A **cinemática inversa** continua em `painel/cinema.js` e aparece na gaveta da
 matemática, que aplica a IK de volta na posição do pé para conferir a direta. A

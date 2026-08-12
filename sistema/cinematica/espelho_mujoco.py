@@ -148,13 +148,15 @@ class Assinante(threading.Thread):
         super().__init__(daemon=True, name="assinante")
         self.url, self.parar = url.rstrip("/"), parar
         self.lock = threading.Lock()
-        self.pose = {"ativa": "FL", "angulos": {p: list(HOME) for p in PERNAS}}
+        self.pose = {"ativa": "FL", "selecao": ["FL"],
+                     "angulos": {p: list(HOME) for p in PERNAS}}
         self.ligado = None
         self.recebidas = 0
 
     def ler(self):
         with self.lock:
-            return self.pose["ativa"], dict(self.pose["angulos"])
+            sel = self.pose.get("selecao") or [self.pose["ativa"]]
+            return tuple(sel), dict(self.pose["angulos"])
 
     def _estado(self, ligado, detalhe=""):
         if ligado != self.ligado:
@@ -194,10 +196,10 @@ def aplicar_pose(m, d, angulos):
         d.qpos[7 + 3 * i:10 + 3 * i] = np.clip(angulos.get(perna, HOME), lo, hi)
     d.qvel[:] = 0.0
 
-def pintar(m, grupos, ativa, matid0, rgba0):
+def pintar(m, grupos, selecao, matid0, rgba0):
     for perna, ids in grupos.items():
         for gid in ids:
-            if perna == ativa:
+            if perna in selecao:
                 m.geom_matid[gid] = -1
                 m.geom_rgba[gid] = VELVET
             else:
@@ -208,7 +210,7 @@ def rodar(m, d, assinante, parar):
     grupos = geoms_por_perna(m)
     matid0 = m.geom_matid.copy()
     rgba0 = m.geom_rgba.copy()
-    ativa_pintada = None
+    selecao_pintada = None
 
     with mujoco.viewer.launch_passive(m, d) as v:
         trava = v.lock()
@@ -229,12 +231,12 @@ def rodar(m, d, assinante, parar):
         prox = time.monotonic()
         while not parar.is_set() and v.is_running():
             try:
-                ativa, angulos = assinante.ler()
+                selecao, angulos = assinante.ler()
                 with trava:
                     aplicar_pose(m, d, angulos)
-                    if ativa != ativa_pintada:
-                        pintar(m, grupos, ativa, matid0, rgba0)
-                        ativa_pintada = ativa
+                    if selecao != selecao_pintada:
+                        pintar(m, grupos, frozenset(selecao), matid0, rgba0)
+                        selecao_pintada = selecao
                     mujoco.mj_forward(m, d)
                 v.sync()
             except Exception:

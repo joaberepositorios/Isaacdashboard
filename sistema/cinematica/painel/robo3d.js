@@ -15,6 +15,7 @@ class Bancada3D {
     this.cores = lerCores();
     this.angulos = {};
     this.ativa = 'FL';
+    this.selecao = ['FL'];
     this.mostrarAlcance = true;
     this.zoomManual = false;
     this._ligarMouse();
@@ -26,7 +27,12 @@ class Bancada3D {
     }
   }
 
-  definir(angulos, ativa) { this.angulos = angulos; this.ativa = ativa; this.desenhar(); }
+  definir(angulos, selecao) {
+    this.angulos = angulos;
+    this.selecao = Array.isArray(selecao) ? selecao : [selecao];
+    this.ativa = this.selecao[0];
+    this.desenhar();
+  }
 
   reiniciarCamera() {
     this.cam = Object.assign({}, CAMERA_INICIAL);
@@ -231,7 +237,7 @@ class Bancada3D {
   _perna(itens, perna) {
     const C = this.cores;
     const q = this.angulos[perna] || HOME;
-    const ativa = perna === this.ativa;
+    const ativa = this.selecao.indexOf(perna) >= 0;
     const [qx, qy] = QUADRIL_XY[perna];
     const { pontos } = pontosDaCadeia(q, LADO[perna]);
     const mundo = pontos.map(p => [qx + p[0], qy + p[1], GEO.Z_BASE + p[2]]);
@@ -314,7 +320,7 @@ class Bancada3D {
       const p = this.proj([qx + Math.sign(qx) * 0.07, qy + Math.sign(qy) * 0.17,
                            GEO.Z_BASE + 0.09]);
       if (p.z < 0.05) continue;
-      ctx.fillStyle = perna === this.ativa ? C.rosaTxt : C.muted;
+      ctx.fillStyle = this.selecao.indexOf(perna) >= 0 ? C.rosaTxt : C.muted;
       ctx.fillText(perna, p.x, p.y);
     }
   }

@@ -55,6 +55,18 @@ def validar(dado):
         raise ValueError("esperava um objeto")
     if dado.get("ativa") not in PERNAS:
         raise ValueError("perna ativa invalida")
+    selecao = dado.get("selecao", [dado["ativa"]])
+    if not isinstance(selecao, list) or not selecao:
+        raise ValueError("selecao vazia ou invalida")
+    vistas, limpa = set(), []
+    for p in selecao:
+        if p not in PERNAS:
+            raise ValueError("perna invalida na selecao: %r" % (p,))
+        if p not in vistas:
+            vistas.add(p)
+            limpa.append(p)
+    if dado["ativa"] not in vistas:
+        raise ValueError("a perna ativa precisa estar na selecao")
     angulos = dado.get("angulos")
     if not isinstance(angulos, dict) or set(angulos) != set(PERNAS):
         raise ValueError("faltam angulos de alguma perna")
@@ -69,7 +81,7 @@ def validar(dado):
                 raise ValueError("angulo nao finito em %s" % perna)
             vs.append(v)
         limpo[perna] = vs
-    return {"ativa": dado["ativa"], "angulos": limpo}
+    return {"ativa": dado["ativa"], "selecao": limpa, "angulos": limpo}
 
 class Manipulador(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"

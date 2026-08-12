@@ -6,9 +6,17 @@ const CM = 100;
 
 const estado = {
   ativa: 'FL',
+  selecao: ['FL'],
   angulos: Object.fromEntries(PERNAS.map(p => [p, HOME.slice()])),
   anim: null,
 };
+
+function limitesSelecao() {
+  return [0, 1, 2].map(i => [
+    Math.max(...estado.selecao.map(p => LIMITES[p][i][0])),
+    Math.min(...estado.selecao.map(p => LIMITES[p][i][1])),
+  ]);
+}
 
 const $ = s => document.querySelector(s);
 
@@ -35,7 +43,7 @@ function iniciar() {
   $('#pose-agachar').addEventListener('click', () => irPara(POSES.agachar));
   $('#pose-esticar').addEventListener('click', () => irPara(POSES.esticar));
   $('#pose-outra').addEventListener('click', () => {
-    if (alternativas.length) irPara(alternativas[0].q);
+    if (alternativas) irPara(alternativas);
   });
   $('#recentrar').addEventListener('click', () => bancada.reiniciarCamera());
   $('#ver-cima').addEventListener('click', () => bancada.verDeCima());
@@ -57,32 +65,61 @@ function iniciar() {
 
 const PERIODO_AMOSTRA = 50;
 
-function trocarPerna(perna) {
-  estado.ativa = perna;
+function trocarPerna(alvo, aditivo) {
+  let sel = estado.selecao.slice();
+
+  if (alvo === TODAS) {
+    sel = aditivo && PERNAS.every(p => sel.indexOf(p) >= 0) ? [estado.ativa] : PERNAS.slice();
+  } else if (aditivo) {
+    sel = sel.indexOf(alvo) >= 0 ? sel.filter(p => p !== alvo) : [alvo].concat(sel);
+    if (!sel.length) sel = [alvo];
+  } else {
+    sel = [alvo];
+  }
+
+  estado.selecao = sel;
+  estado.ativa = sel.indexOf(alvo) >= 0 ? alvo : sel[0];
   estado.anim = null;
+
+  // com pernas de limites diferentes juntas, o mostrador so pode oferecer a
+  // interseccao -- entao quem estiver fora dela entra, senao o angulo mostrado
+  // seria inalcancavel para parte da selecao
+  const lim = limitesSelecao();
+  for (const p of estado.selecao) {
+    estado.angulos[p] = estado.angulos[p].map(
+      (v, i) => Math.max(lim[i][0], Math.min(lim[i][1], v)));
+  }
+
   limparHistorico();
   amostrar();
-  mapaPernas($('#mapa'), perna, trocarPerna);
-  $('#perna-atual').textContent = `${perna} · ${NOME_PERNA[perna]}`;
+  mapaPernas($('#mapa'), estado.selecao, trocarPerna);
+  $('#perna-atual').textContent = sel.length === 1
+    ? `${sel[0]} · ${NOME_PERNA[sel[0]]}`
+    : PERNAS.filter(p => sel.indexOf(p) >= 0).join(' ');
   refrescar();
 }
 
 function girarJunta(i, valor) {
   estado.anim = null;
-  const q = estado.angulos[estado.ativa].slice();
-  q[i] = valor;
-  estado.angulos[estado.ativa] = q;
+  for (const p of estado.selecao) {
+    const q = estado.angulos[p].slice();
+    q[i] = Math.max(LIMITES[p][i][0], Math.min(LIMITES[p][i][1], valor));
+    estado.angulos[p] = q;
+  }
   refrescar();
 }
 
+// qFim: um array (o mesmo alvo para todas) ou um objeto {perna: array}
 function irPara(qFim) {
+  const pernas = estado.selecao.slice();
+  const alvo = p => (Array.isArray(qFim) ? qFim : qFim[p]);
   estado.anim = {
-    perna: estado.ativa,
-    ini: estado.angulos[estado.ativa].slice(),
-    fim: qFim.map((v, i) => {
-      const [lo, hi] = LIMITES[estado.ativa][i];
+    pernas,
+    ini: Object.fromEntries(pernas.map(p => [p, estado.angulos[p].slice()])),
+    fim: Object.fromEntries(pernas.map(p => [p, alvo(p).map((v, i) => {
+      const [lo, hi] = LIMITES[p][i];
       return Math.max(lo, Math.min(hi, v));
-    }),
+    })])),
     t0: performance.now() / 1000,
   };
   requestAnimationFrame(passoAnim);
@@ -94,7 +131,9 @@ function passoAnim() {
   let t = (performance.now() / 1000 - a.t0) / DURACAO_ANIM;
   if (t >= 1) { t = 1; estado.anim = null; }
   const s = 3 * t * t - 2 * t * t * t;
-  estado.angulos[a.perna] = a.ini.map((v, i) => v + (a.fim[i] - v) * s);
+  for (const p of a.pernas) {
+    estado.angulos[p] = a.ini[p].map((v, i) => v + (a.fim[p][i] - v) * s);
+  }
   refrescar();
   if (estado.anim) requestAnimationFrame(passoAnim);
 }
@@ -105,17 +144,32 @@ function refrescar() {
   const { pontos, T } = pontosDaCadeia(q, lado);
   const pe = pontos[3];
 
-  mostradores.forEach((m, i) => m.definir(q[i], LIMITES[perna][i][0], LIMITES[perna][i][1]));
+  const lim = limitesSelecao();
+  mostradores.forEach((m, i) => m.definir(q[i], lim[i][0], lim[i][1]));
 
-  bancada.definir(estado.angulos, perna);
+  bancada.definir(estado.angulos, estado.selecao);
   telemetria(pe, lado);
 
   $('#vista-lat').innerHTML = vista2D(pontos, 0, 2);
   $('#vista-fro').innerHTML = vista2D(pontos, 1, 2);
 
-  alternativas = solucoesIk(pe[0], pe[1], pe[2], lado, LIMITES[perna])
-    .filter(s => s.q.some((v, i) => Math.abs(v - q[i]) > 1e-4));
-  $('#pose-outra').disabled = alternativas.length === 0;
+  // uma alternativa POR perna, cada uma com o seu lado: aplicar a solucao da
+  // guia nas outras moveria o pe delas -- espelhar em y exige inverter q1, e
+  // aqui todas usam o mesmo q1
+  alternativas = null;
+  const porPerna = {};
+  for (const p of estado.selecao) {
+    const qp = estado.angulos[p];
+    const pep = origem(fkPerna(qp[0], qp[1], qp[2], LADO[p]).T03);
+    const alt = solucoesIk(pep[0], pep[1], pep[2], LADO[p], lim)
+      .filter(s => s.q.some((v, i) => Math.abs(v - qp[i]) > 1e-4));
+    if (!alt.length) { $('#pose-outra').disabled = true; break; }
+    porPerna[p] = alt[0].q;
+  }
+  if (Object.keys(porPerna).length === estado.selecao.length) {
+    alternativas = porPerna;
+    $('#pose-outra').disabled = false;
+  }
 
   if ($('#detalhes').open) matematica(T);
 
@@ -288,7 +342,9 @@ const PERIODO_ENVIO = 33;
 
 function publicarPose() {
   const agora = performance.now();
-  const carga = { ativa: estado.ativa, angulos: estado.angulos };
+  const carga = {
+    ativa: estado.ativa, selecao: estado.selecao.slice(), angulos: estado.angulos,
+  };
   if (ponte.emVoo || agora - ponte.ultimo < PERIODO_ENVIO) {
     ponte.atrasado = carga;
     if (!ponte.emVoo) setTimeout(escoar, PERIODO_ENVIO);

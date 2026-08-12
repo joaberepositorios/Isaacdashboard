@@ -227,13 +227,28 @@ function vista2D(pontos, ii, jj) {
   return s + '</svg>';
 }
 
-function mapaPernas(host, ativa, aoEscolher) {
+const TODAS = '*';
+
+function mapaPernas(host, selecao, aoEscolher) {
   const l = 230, alt = 98, cx = l / 2, cy = alt / 2 + 3;
   const s = svgEl('svg', { class: 'mapa', viewBox: `0 0 ${l} ${alt}`, height: alt });
+  const escolhida = p => selecao.indexOf(p) >= 0;
+  const todas = PERNAS.every(escolhida);
 
-  s.appendChild(svgEl('rect', {
+  const tronco = svgEl('g', {
+    class: 'mapa-tronco' + (todas ? ' ativa' : ''),
+    role: 'button', tabindex: '0', 'aria-pressed': String(todas),
+  });
+  tronco.appendChild(svgEl('rect', {
     class: 'mapa-corpo', x: cx - 19, y: cy - 27, width: 38, height: 54, rx: 8,
   }));
+  const disparar = (alvo, ev) => aoEscolher(alvo, ev.ctrlKey || ev.metaKey || ev.shiftKey);
+  tronco.addEventListener('click', ev => disparar(TODAS, ev));
+  tronco.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); disparar(TODAS, ev); }
+  });
+  s.appendChild(tronco);
+
   const seta = svgEl('path', { class: 'mapa-frente', d: `M${cx} ${cy - 36} l5 9 h-10 z` });
   s.appendChild(seta);
   const rf = svgEl('text', { class: 'mapa-rot', x: cx, y: cy - 40, 'text-anchor': 'middle' });
@@ -245,16 +260,17 @@ function mapaPernas(host, ativa, aoEscolher) {
     const [sx, sy] = casas[perna];
     const x = cx + sx * 60, y = cy + sy * 19;
     const g = svgEl('g', {
-      class: 'mapa-perna' + (perna === ativa ? ' ativa' : ''),
-      role: 'button', tabindex: '0', 'aria-pressed': String(perna === ativa),
+      class: 'mapa-perna' + (escolhida(perna) ? ' ativa' : '') +
+             (selecao[0] === perna && selecao.length > 1 ? ' guia' : ''),
+      role: 'button', tabindex: '0', 'aria-pressed': String(escolhida(perna)),
     });
     g.appendChild(svgEl('rect', { x: x - 25, y: y - 13, width: 50, height: 26, rx: 7 }));
     const t = svgEl('text', { x, y: y + 5, 'text-anchor': 'middle' });
     t.textContent = perna;
     g.appendChild(t);
-    g.addEventListener('click', () => aoEscolher(perna));
+    g.addEventListener('click', ev => disparar(perna, ev));
     g.addEventListener('keydown', ev => {
-      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); aoEscolher(perna); }
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); disparar(perna, ev); }
     });
     s.appendChild(g);
   }
